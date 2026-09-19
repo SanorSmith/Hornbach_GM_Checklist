@@ -4,7 +4,7 @@ import { IdleGuard } from '@/components/auth/idle-guard';
 import { DemoBanner } from '@/components/layout/demo-banner';
 import { Topbar } from '@/components/layout/topbar';
 import { requireUserOrRedirect } from '@/lib/auth/guard';
-import { CHECKLIST_CATALOGUE } from '@/lib/checklists';
+import { CHECKLIST_CATALOGUE, SHIFT_MESSAGE_KEY } from '@/lib/checklists';
 import { t } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +40,7 @@ export default async function HomePage() {
                       <CardTitle className="truncate">{list.nameSv}</CardTitle>
                       <p className="gm-muted mt-1 text-sm">{list.roleSv}</p>
                     </div>
-                    <Badge tone="brand">{t(`shift.${list.shift}`)}</Badge>
+                    <Badge tone="brand">{t(SHIFT_MESSAGE_KEY[list.shift])}</Badge>
                   </div>
                   <dl className="gm-muted mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm tabular-nums">
                     <div className="flex gap-1.5">
