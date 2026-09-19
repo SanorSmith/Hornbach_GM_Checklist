@@ -43,6 +43,34 @@ export const sv = {
   'shift.fullDay': 'Heldag',
 
   'phase.scaffold': 'Grundstommen är på plats. Checklistorna läggs in i nästa steg.',
+
+  'login.title': 'Logga in',
+  'login.subtitle': 'Använd ditt användarnamn och din PIN-kod.',
+  'login.username': 'Användarnamn',
+  'login.pin': 'PIN-kod',
+  'login.submit': 'Logga in',
+  'login.signingIn': 'Loggar in…',
+  'login.clear': 'Rensa',
+  'login.badCredentials': 'Fel användarnamn eller PIN-kod.',
+  'login.locked': 'Kontot är låst efter för många försök. Försök igen om {minutes} minuter.',
+  'login.invalidInput': 'Fyll i användarnamn och en PIN-kod med 4–8 siffror.',
+  'login.inactive': 'Kontot är inaktiverat. Kontakta din gruppledare.',
+  'login.failed': 'Inloggningen misslyckades. Försök igen.',
+  'login.demoHeading': 'Demokonton',
+  'login.demoBody': 'Systemet körs i demoläge, så inloggningarna nedan är öppna med flit.',
+
+  'demo.banner': 'DEMOLÄGE – ingenting sparas. Använd inte för riktiga checklistor.',
+
+  'nav.logout': 'Logga ut',
+  'nav.signedInAs': 'Inloggad som',
+
+  'idle.warningTitle': 'Är du kvar?',
+  'idle.warningBody': 'Du loggas ut automatiskt om {seconds} sekunder.',
+  'idle.stay': 'Jag är kvar',
+
+  'role.worker': 'Medarbetare',
+  'role.groupLeader': 'Gruppledare',
+  'role.admin': 'Administratör',
 } as const;
 
 export type MessageKey = keyof typeof sv;

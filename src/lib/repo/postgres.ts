@@ -1,0 +1,183 @@
+import { and, eq, sql as raw } from 'drizzle-orm';
+import type { AuthUser, Role } from '@/lib/auth/types';
+import { getDb, schema } from '@/lib/db/client';
+import { STORE_CODE } from '@/lib/config';
+import type { Repository } from './types';
+
+const globalForStore = globalThis as unknown as { __gmStoreId?: Promise<string> };
+
+/** Resolved once per process — the store row never changes during a deploy. */
+function storeId(): Promise<string> {
+  globalForStore.__gmStoreId ??= (async () => {
+    const db = getDb();
+    const [row] = await db
+      .select({ id: schema.stores.id })
+      .from(schema.stores)
+      .where(eq(schema.stores.code, STORE_CODE))
+      .limit(1);
+    if (!row) {
+      throw new Error(
+        `No store with code "${STORE_CODE}". Run \`npm run seed\` after applying migrations.`,
+      );
+    }
+    return row.id;
+  })();
+  return globalForStore.__gmStoreId;
+}
+
+async function loadUser(where: ReturnType<typeof eq>): Promise<AuthUser | null> {
+  const db = getDb();
+  const [row] = await db.select().from(schema.users).where(where).limit(1);
+  if (!row) return null;
+
+  const grants = await db
+    .select({ role: schema.userRoleGrants.role })
+    .from(schema.userRoleGrants)
+    .where(eq(schema.userRoleGrants.userId, row.id));
+
+  return {
+    id: row.id,
+    storeId: row.storeId,
+    username: row.username,
+    displayName: row.displayName,
+    roles: grants.map((g) => g.role as Role),
+    isActive: row.isActive,
+    pinHash: row.pinHash,
+    passwordHash: row.passwordHash,
+    pinFailedCount: row.pinFailedCount,
+    lockedUntil: row.lockedUntil,
+  };
+}
+
+export function createPostgresRepository(): Repository {
+  return {
+    mode: 'live',
+
+    async findUserByUsername(username) {
+      const store = await storeId();
+      return loadUser(
+        and(eq(schema.users.storeId, store), eq(schema.users.username, username))!,
+      );
+    },
+
+    async findUserById(id) {
+      return loadUser(eq(schema.users.id, id));
+    },
+
+    async listUsers() {
+      const db = getDb();
+      const store = await storeId();
+      const rows = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.storeId, store));
+
+      const grants = await db.select().from(schema.userRoleGrants);
+      return rows.map((row) => ({
+        id: row.id,
+        storeId: row.storeId,
+        username: row.username,
+        displayName: row.displayName,
+        roles: grants.filter((g) => g.userId === row.id).map((g) => g.role as Role),
+        isActive: row.isActive,
+        pinHash: row.pinHash,
+        passwordHash: row.passwordHash,
+        pinFailedCount: row.pinFailedCount,
+        lockedUntil: row.lockedUntil,
+      }));
+    },
+
+    async recordPinFailure(userId) {
+      const db = getDb();
+      const [row] = await db
+        .update(schema.users)
+        .set({ pinFailedCount: raw`${schema.users.pinFailedCount} + 1` })
+        .where(eq(schema.users.id, userId))
+        .returning({ count: schema.users.pinFailedCount });
+      return row?.count ?? 0;
+    },
+
+    async lockUser(userId, until) {
+      const db = getDb();
+      await db
+        .update(schema.users)
+        .set({ lockedUntil: until })
+        .where(eq(schema.users.id, userId));
+    },
+
+    async clearPinFailures(userId) {
+      const db = getDb();
+      await db
+        .update(schema.users)
+        .set({ pinFailedCount: 0, lockedUntil: null })
+        .where(eq(schema.users.id, userId));
+    },
+
+    async createSession({ userId, deviceId, expiresAt, userAgent }) {
+      const db = getDb();
+      const [row] = await db
+        .insert(schema.sessions)
+        .values({ userId, deviceId, expiresAt, userAgent: userAgent ?? null })
+        .returning();
+      if (!row) throw new Error('Failed to create session.');
+      return {
+        id: row.id,
+        userId: row.userId,
+        deviceId: row.deviceId,
+        expiresAt: row.expiresAt,
+        revokedAt: row.revokedAt,
+      };
+    },
+
+    async findSession(id) {
+      const db = getDb();
+      const [row] = await db
+        .select()
+        .from(schema.sessions)
+        .where(eq(schema.sessions.id, id))
+        .limit(1);
+      if (!row) return null;
+      return {
+        id: row.id,
+        userId: row.userId,
+        deviceId: row.deviceId,
+        expiresAt: row.expiresAt,
+        revokedAt: row.revokedAt,
+      };
+    },
+
+    async touchSession(id) {
+      const db = getDb();
+      await db
+        .update(schema.sessions)
+        .set({ lastSeenAt: new Date() })
+        .where(eq(schema.sessions.id, id));
+    },
+
+    async revokeSession(id) {
+      const db = getDb();
+      await db
+        .update(schema.sessions)
+        .set({ revokedAt: new Date() })
+        .where(eq(schema.sessions.id, id));
+    },
+
+    async appendAudit(entry) {
+      const db = getDb();
+      const store = await storeId();
+      // prev_hash / row_hash are filled by the BEFORE INSERT trigger in
+      // db/sql/audit_chain.sql — never computed here, so a buggy client cannot
+      // forge a chain link.
+      await db.insert(schema.auditLog).values({
+        storeId: store,
+        actorUserId: entry.actorUserId,
+        actorUsername: entry.actorUsername,
+        action: entry.action,
+        entityType: entry.entityType,
+        entityId: entry.entityId ?? null,
+        before: entry.before ?? null,
+        after: entry.after ?? null,
+      });
+    },
+  };
+}
