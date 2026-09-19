@@ -23,7 +23,8 @@ data; they must only ever be served through short-lived signed URLs.
 
 ## 2. Create the schema
 
-Two ways, same result. Use whichever you have to hand.
+Two ways. They are **not** interchangeable: the Drizzle path takes two steps,
+the SQL editor path takes one.
 
 **Drizzle (preferred — keeps migration history):**
 
@@ -35,16 +36,38 @@ npm run db:migrate
 `DIRECT_DATABASE_URL` is the same host with `-pooler` removed. Migrations need
 DDL and advisory locks, which the pooled endpoint does not support.
 
+Then apply [`db/sql/audit_chain.sql`](../db/sql/audit_chain.sql) — paste it into
+the Neon SQL editor, or pipe it in with `psql`.
+
+**This second step is not optional.** `db:migrate` applies only
+`db/migrations/`, and the audit log's hash chain and append-only trigger are not
+migrations. Skip it and nothing appears to be wrong: `audit_log` exists and
+accepts writes, it is simply neither chained nor immutable, and
+`scripts/verify-audit-chain.ts` would be checking a chain that nothing
+maintains. The file replaces its own functions and triggers, so re-running it is
+harmless.
+
 **Neon SQL editor (no local toolchain needed):**
 
 Paste the contents of [`db/sql/schema.sql`](../db/sql/schema.sql). It is
-generated from the same migrations and is safe to re-run.
+generated from the migrations *and* `audit_chain.sql`, so unlike the Drizzle
+path it is complete on its own. Safe to re-run.
 
-## 3. Seed the store and the checklists
+## 3. Seed the store and the first account
 
 ```bash
-npm run seed            # store, roles, and the four checklist templates
+npm run seed            # the store and one admin account
 ```
+
+Creates the store and a single `admin` user, and prints a randomly generated PIN
+**once** — there are deliberately no default credentials. Put it in a password
+manager: it is argon2-hashed, so a lost PIN means re-seeding, not recovery.
+
+Add `-- --with-demo-users` for the `gpl` and `linefeeder` test accounts. Users
+that already exist are left untouched, so the seed is safe to re-run.
+
+The four checklist templates are not seeded. They live in `seeds/templates/` and
+are served from code in both demo and database mode.
 
 ## 4. Vercel
 
