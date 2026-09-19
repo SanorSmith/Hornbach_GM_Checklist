@@ -9,10 +9,15 @@
 -- Neon the application connects as neondb_owner, and an owner can grant its
 -- own privileges back. A trigger stops the owner too.
 --
+-- Hand-written: drizzle-kit generates migrations by diffing the Drizzle schema,
+-- which does not model functions or triggers. It lived in db/sql/audit_chain.sql
+-- until it turned out that `npm run db:migrate` therefore skipped it, leaving an
+-- audit log that was neither chained nor immutable with nothing to say so.
+--
 -- Safe to re-run.
 -- ---------------------------------------------------------------------------
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;--> statement-breakpoint
 
 CREATE OR REPLACE FUNCTION gm_audit_chain() RETURNS trigger AS $$
 DECLARE
@@ -47,12 +52,13 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;--> statement-breakpoint
 
-DROP TRIGGER IF EXISTS audit_log_chain ON audit_log;
+DROP TRIGGER IF EXISTS audit_log_chain ON audit_log;--> statement-breakpoint
+
 CREATE TRIGGER audit_log_chain
   BEFORE INSERT ON audit_log
-  FOR EACH ROW EXECUTE FUNCTION gm_audit_chain();
+  FOR EACH ROW EXECUTE FUNCTION gm_audit_chain();--> statement-breakpoint
 
 CREATE OR REPLACE FUNCTION gm_audit_immutable() RETURNS trigger AS $$
 BEGIN
@@ -60,9 +66,10 @@ BEGIN
     'audit_log is append-only; % is not permitted', TG_OP
     USING ERRCODE = 'insufficient_privilege';
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;--> statement-breakpoint
 
-DROP TRIGGER IF EXISTS audit_log_immutable ON audit_log;
+DROP TRIGGER IF EXISTS audit_log_immutable ON audit_log;--> statement-breakpoint
+
 CREATE TRIGGER audit_log_immutable
   BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW EXECUTE FUNCTION gm_audit_immutable();

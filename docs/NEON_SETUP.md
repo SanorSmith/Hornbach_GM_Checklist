@@ -40,11 +40,29 @@ DDL and advisory locks, which the pooled endpoint does not support.
 Paste the contents of [`db/sql/schema.sql`](../db/sql/schema.sql). It is
 generated from the same migrations and is safe to re-run.
 
-## 3. Seed the store and the checklists
+Everything the schema needs is a migration, including the audit log's hash chain
+and append-only trigger
+([`0004_audit_chain.sql`](../db/migrations/0004_audit_chain.sql)). Those used to
+live in a separate `db/sql/` file that `db:migrate` did not apply, so the two
+paths above quietly produced different databases — one with an append-only audit
+log and one without. Keep new hand-written SQL in `db/migrations/` for the same
+reason.
+
+## 3. Seed the store and the first account
 
 ```bash
-npm run seed            # store, roles, and the four checklist templates
+npm run seed            # the store and one admin account
 ```
+
+Creates the store and a single `admin` user, and prints a randomly generated PIN
+**once** — there are deliberately no default credentials. Put it in a password
+manager: it is argon2-hashed, so a lost PIN means re-seeding, not recovery.
+
+Add `-- --with-demo-users` for the `gpl` and `linefeeder` test accounts. Users
+that already exist are left untouched, so the seed is safe to re-run.
+
+The four checklist templates are not seeded. They live in `seeds/templates/` and
+are served from code in both demo and database mode.
 
 ## 4. Vercel
 

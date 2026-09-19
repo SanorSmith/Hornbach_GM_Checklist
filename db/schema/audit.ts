@@ -19,8 +19,8 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({
  *
  * Each row's `rowHash` covers the previous row's hash, so altering or deleting
  * any row in the middle breaks the chain and `scripts/verify-audit-chain.ts`
- * detects it. `UPDATE` and `DELETE` are revoked from the application role in
- * `db/sql/audit_chain.sql`; the trigger there computes the hash.
+ * detects it. `UPDATE` and `DELETE` are blocked by a trigger in
+ * `db/migrations/0004_audit_chain.sql`, which also computes the hash.
  *
  * This is what makes a digital checklist more trustworthy than the paper one —
  * a signed run cannot be quietly edited afterwards.

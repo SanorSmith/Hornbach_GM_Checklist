@@ -147,8 +147,8 @@ export function createPostgresRepository(): Repository {
       const db = getDb();
       const store = await storeId();
       // prev_hash / row_hash are filled by the BEFORE INSERT trigger in
-      // db/sql/audit_chain.sql — never computed here, so a buggy client cannot
-      // forge a chain link.
+      // db/migrations/0004_audit_chain.sql — never computed here, so a buggy
+      // client cannot forge a chain link.
       await db.insert(schema.auditLog).values({
         storeId: store,
         actorUserId: entry.actorUserId,
