@@ -149,6 +149,12 @@ export function createMemoryRepository(): Repository {
       const { audit } = await state();
       audit.push({ ...entry, occurredAt: new Date() });
     },
+
+    openRun: (...args) => memoryRunRepository.openRun(...args),
+    getRun: (...args) => memoryRunRepository.getRun(...args),
+    saveAnswer: (...args) => memoryRunRepository.saveAnswer(...args),
+    signRun: (...args) => memoryRunRepository.signRun(...args),
+    listRunsForDate: (...args) => memoryRunRepository.listRunsForDate(...args),
   };
 }
 
@@ -160,4 +166,99 @@ export function createMemoryRepository(): Repository {
 export function __resetMemoryRepositoryForTests(): void {
   delete (globalThis as { __gmMemory?: unknown }).__gmMemory;
   delete (globalThis as { __gmRepo?: unknown }).__gmRepo;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Runs (demo mode)                                                           */
+/* -------------------------------------------------------------------------- */
+
+import type { AnswerPatch, RunDetail, RunRepository } from './types';
+
+interface RunStore {
+  runs: Map<string, RunDetail>;
+}
+
+const globalForRuns = globalThis as unknown as { __gmRuns?: RunStore };
+
+function runStore(): RunStore {
+  globalForRuns.__gmRuns ??= { runs: new Map() };
+  return globalForRuns.__gmRuns;
+}
+
+/** Demo runs live in memory and do not survive a restart — the banner says so. */
+export const memoryRunRepository: RunRepository = {
+  async openRun({ templateCode, templateVersion, businessDate, shift, userId }) {
+    const { runs } = runStore();
+    const existing = [...runs.values()].find(
+      (r) => r.templateCode === templateCode && r.businessDate === businessDate,
+    );
+    if (existing) return existing;
+
+    const run: RunDetail = {
+      id: randomUUID(),
+      templateCode,
+      templateVersion,
+      businessDate,
+      shift,
+      status: 'OPEN',
+      createdBy: userId,
+      items: [],
+      signatures: [],
+    };
+    runs.set(run.id, run);
+    return run;
+  },
+
+  async getRun(runId) {
+    return runStore().runs.get(runId) ?? null;
+  },
+
+  async saveAnswer(runId, patch: AnswerPatch, userId, answeredAt) {
+    const run = runStore().runs.get(runId);
+    if (!run) throw new Error(`No such run: ${runId}`);
+    if (run.status === 'SUBMITTED') throw new Error('Listan är redan signerad.');
+
+    const existing = run.items.find((i) => i.itemCode === patch.itemCode);
+    const merged = {
+      itemCode: patch.itemCode,
+      answer: patch.answer !== undefined ? patch.answer : existing?.answer,
+      answerCode: patch.answerCode !== undefined ? patch.answerCode : existing?.answerCode,
+      note: patch.note !== undefined ? patch.note : existing?.note,
+      fields: { ...(existing?.fields ?? {}), ...(patch.fields ?? {}) },
+      answeredBy: userId,
+      answeredAt: answeredAt.toISOString(),
+    };
+
+    if (existing) {
+      Object.assign(existing, merged);
+    } else {
+      run.items.push(merged);
+    }
+  },
+
+  async signRun(runId, input) {
+    const run = runStore().runs.get(runId);
+    if (!run) throw new Error(`No such run: ${runId}`);
+    if (run.signatures.some((s) => s.slot === input.slot)) {
+      throw new Error('Listan är redan signerad för den här platsen.');
+    }
+
+    run.signatures.push({
+      slot: input.slot,
+      username: input.username,
+      displayName: input.displayName,
+      signedAt: new Date().toISOString(),
+      signatureHash: input.signatureHash,
+    });
+    run.status = 'SUBMITTED';
+  },
+
+  async listRunsForDate(businessDate) {
+    return [...runStore().runs.values()].filter((r) => r.businessDate === businessDate);
+  },
+};
+
+/** Test-only: forgets every demo run. */
+export function __resetRunsForTests(): void {
+  delete (globalThis as { __gmRuns?: unknown }).__gmRuns;
 }

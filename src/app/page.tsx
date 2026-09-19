@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardBody, CardTitle } from '@/components/ui/card';
 import { IdleGuard } from '@/components/auth/idle-guard';
@@ -33,14 +35,18 @@ export default async function HomePage() {
         <ul className="space-y-3">
           {CHECKLIST_CATALOGUE.map((list) => (
             <li key={list.code}>
-              <Card>
+              <Link href={`/lista/${list.code}`} className="block focus-visible:rounded-gm">
+              <Card className="transition-colors hover:border-[hsl(var(--gm-brand))]">
                 <CardBody>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <CardTitle className="truncate">{list.nameSv}</CardTitle>
                       <p className="gm-muted mt-1 text-sm">{list.roleSv}</p>
                     </div>
-                    <Badge tone="brand">{t(SHIFT_MESSAGE_KEY[list.shift])}</Badge>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge tone="brand">{t(SHIFT_MESSAGE_KEY[list.shift])}</Badge>
+                      <ChevronRight className="h-5 w-5 opacity-50" aria-hidden />
+                    </div>
                   </div>
                   <dl className="gm-muted mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm tabular-nums">
                     <div className="flex gap-1.5">
@@ -54,11 +60,11 @@ export default async function HomePage() {
                   </dl>
                 </CardBody>
               </Card>
+              </Link>
             </li>
           ))}
         </ul>
 
-        <p className="gm-panel mt-6 text-sm">{t('phase.scaffold')}</p>
       </main>
 
       <IdleGuard shared={session.deviceShared} />
