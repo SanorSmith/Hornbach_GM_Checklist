@@ -26,8 +26,17 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({
  * configured before the system works. If volume grows, `storageKey` is the
  * seam: point it at a Neon bucket and stop writing `bytes`.
  *
- * Dedupe on (item, sha256) makes a re-upload after a dropped connection
- * idempotent, which matters on warehouse wifi.
+ * Dedupe on (run, item, sha256) makes a re-upload after a dropped connection
+ * idempotent, which matters on warehouse wifi. The dedupe is per run: a
+ * dropped upload is always retried within the run being performed, so scoping
+ * it there keeps the retry behaviour and nothing else.
+ *
+ * The run has to be in the key because these are photos of static scenes — the
+ * same tidy yard, the same emptied bin — so today's upload can be
+ * byte-identical to yesterday's. Keyed on (item, sha256) alone, today's photo
+ * would collide with yesterday's row, this run would list no photo for the
+ * point, and the point could never be signed: every retry would dedupe straight
+ * back into yesterday's run.
  */
 export const attachments = pgTable(
   'attachments',
@@ -54,7 +63,7 @@ export const attachments = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (t) => [
-    uniqueIndex('attachments_dedupe').on(t.itemCode, t.sha256),
+    uniqueIndex('attachments_dedupe').on(t.runId, t.itemCode, t.sha256),
     index('attachments_run_idx').on(t.runId),
   ],
 );
