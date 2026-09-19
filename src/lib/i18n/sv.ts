@@ -1,0 +1,76 @@
+/**
+ * Swedish is the source of truth: the checklists are written in Swedish and a
+ * translation that shifts a rule's meaning is a safety problem, not a typo.
+ * Add keys here first; `en.ts` is typed against this object so it cannot drift.
+ */
+export const sv = {
+  'app.name': 'GM Checklista',
+  'app.tagline': 'Digitala checklistor för Godsmottagningen',
+
+  'nav.myLists': 'Mina listor',
+  'nav.leader': 'Gruppledare',
+  'nav.reports': 'Rapporter',
+  'nav.admin': 'Administration',
+
+  'worker.pickList': 'Vilka listor ska du göra idag?',
+  'worker.start': 'Starta',
+  'worker.continue': 'Fortsätt',
+  'worker.sign': 'Signera listan',
+
+  'answer.ja': 'Ja',
+  'answer.nej': 'Nej',
+  'answer.ingetBehov': 'Inget behov',
+  'answer.note': 'Anteckning',
+
+  'item.blocked': 'Låst tills föregående punkt är besvarad',
+  'item.dueAt': 'Senast',
+  'item.overdue': 'Försenad',
+  'item.photoRequired': 'Bild krävs',
+
+  'note.whyNot': 'Skriv varför ni inte hann – inte «hinner inte».',
+
+  'leader.afterControl': 'Efterkontroll',
+  'leader.comment': 'Kommentar',
+  'leader.ok': 'Godkänd',
+  'leader.notOk': 'Ej godkänd',
+
+  'status.offline': 'Offline – svaren sparas och skickas när nätet är tillbaka',
+  'status.unsynced': 'Osynkade svar',
+
+  'shift.morning': 'Morgon',
+  'shift.midday': 'Mellanpass',
+  'shift.evening': 'Kväll',
+  'shift.fullDay': 'Heldag',
+
+  'phase.scaffold': 'Grundstommen är på plats. Checklistorna läggs in i nästa steg.',
+
+  'login.title': 'Logga in',
+  'login.subtitle': 'Använd ditt användarnamn och din PIN-kod.',
+  'login.username': 'Användarnamn',
+  'login.pin': 'PIN-kod',
+  'login.submit': 'Logga in',
+  'login.signingIn': 'Loggar in…',
+  'login.clear': 'Rensa',
+  'login.badCredentials': 'Fel användarnamn eller PIN-kod.',
+  'login.locked': 'Kontot är låst efter för många försök. Försök igen om {minutes} minuter.',
+  'login.invalidInput': 'Fyll i användarnamn och en PIN-kod med 4–8 siffror.',
+  'login.inactive': 'Kontot är inaktiverat. Kontakta din gruppledare.',
+  'login.failed': 'Inloggningen misslyckades. Försök igen.',
+  'login.demoHeading': 'Demokonton',
+  'login.demoBody': 'Systemet körs i demoläge, så inloggningarna nedan är öppna med flit.',
+
+  'demo.banner': 'DEMOLÄGE – ingenting sparas. Använd inte för riktiga checklistor.',
+
+  'nav.logout': 'Logga ut',
+  'nav.signedInAs': 'Inloggad som',
+
+  'idle.warningTitle': 'Är du kvar?',
+  'idle.warningBody': 'Du loggas ut automatiskt om {seconds} sekunder.',
+  'idle.stay': 'Jag är kvar',
+
+  'role.worker': 'Medarbetare',
+  'role.groupLeader': 'Gruppledare',
+  'role.admin': 'Administratör',
+} as const;
+
+export type MessageKey = keyof typeof sv;
