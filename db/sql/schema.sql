@@ -118,6 +118,102 @@ CREATE UNIQUE INDEX "users_store_username_uq" ON "users" USING btree ("store_id"
 CREATE INDEX "audit_entity_idx" ON "audit_log" USING btree ("entity_type","entity_id","seq");
 CREATE INDEX "audit_actor_idx" ON "audit_log" USING btree ("actor_user_id","occurred_at");
 
+-- ===== db/migrations/0001_runs_and_signatures.sql =====
+CREATE TABLE "checklist_runs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"store_id" uuid NOT NULL,
+	"template_code" text NOT NULL,
+	"template_version" integer NOT NULL,
+	"business_date" date NOT NULL,
+	"shift" "shift_code" NOT NULL,
+	"status" "run_status" DEFAULT 'OPEN' NOT NULL,
+	"opened_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"submitted_at" timestamp with time zone,
+	"created_by" uuid
+);
+
+CREATE TABLE "run_item_field_values" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"run_item_id" uuid NOT NULL,
+	"field_key" text NOT NULL,
+	"field_type" "field_type" NOT NULL,
+	"value_text" text,
+	"value_numeric" numeric,
+	"value_user_id" uuid
+);
+
+CREATE TABLE "run_items" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"run_id" uuid NOT NULL,
+	"item_code" text NOT NULL,
+	"assignee_slot" smallint DEFAULT 1 NOT NULL,
+	"status" "item_status" DEFAULT 'PENDING' NOT NULL,
+	"answer" "answer_value",
+	"answer_code" text,
+	"note" text,
+	"due_at" timestamp with time zone,
+	"is_late" boolean,
+	"answered_by" uuid,
+	"answered_at" timestamp with time zone,
+	"client_answered_at" timestamp with time zone
+);
+
+CREATE TABLE "signatures" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"run_id" uuid NOT NULL,
+	"slot" smallint DEFAULT 1 NOT NULL,
+	"purpose" text DEFAULT 'WORKER_SUBMIT' NOT NULL,
+	"user_id" uuid NOT NULL,
+	"username" text NOT NULL,
+	"display_name" text NOT NULL,
+	"signed_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"device_label" text,
+	"content_hash" text NOT NULL,
+	"signature_hash" text NOT NULL,
+	"snapshot" jsonb NOT NULL
+);
+
+ALTER TABLE "checklist_runs" ADD CONSTRAINT "checklist_runs_store_id_stores_id_fk" FOREIGN KEY ("store_id") REFERENCES "public"."stores"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "checklist_runs" ADD CONSTRAINT "checklist_runs_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "run_item_field_values" ADD CONSTRAINT "run_item_field_values_run_item_id_run_items_id_fk" FOREIGN KEY ("run_item_id") REFERENCES "public"."run_items"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "run_item_field_values" ADD CONSTRAINT "run_item_field_values_value_user_id_users_id_fk" FOREIGN KEY ("value_user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "run_items" ADD CONSTRAINT "run_items_run_id_checklist_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."checklist_runs"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "run_items" ADD CONSTRAINT "run_items_answered_by_users_id_fk" FOREIGN KEY ("answered_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "signatures" ADD CONSTRAINT "signatures_run_id_checklist_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."checklist_runs"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "signatures" ADD CONSTRAINT "signatures_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+CREATE UNIQUE INDEX "runs_unique_per_day" ON "checklist_runs" USING btree ("store_id","template_code","business_date","shift");
+CREATE INDEX "runs_by_date_idx" ON "checklist_runs" USING btree ("store_id","business_date");
+CREATE UNIQUE INDEX "run_item_field_unique" ON "run_item_field_values" USING btree ("run_item_id","field_key");
+CREATE UNIQUE INDEX "run_items_unique" ON "run_items" USING btree ("run_id","item_code");
+CREATE INDEX "run_items_code_idx" ON "run_items" USING btree ("item_code");
+CREATE UNIQUE INDEX "signature_unique" ON "signatures" USING btree ("run_id","slot","purpose");
+
+-- ===== db/migrations/0002_attachments.sql =====
+CREATE TABLE "attachments" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"run_id" uuid NOT NULL,
+	"item_code" text NOT NULL,
+	"group_key" text,
+	"content_type" text NOT NULL,
+	"byte_size" integer NOT NULL,
+	"sha256" text NOT NULL,
+	"bytes" "bytea",
+	"storage_key" text,
+	"captured_at" timestamp with time zone,
+	"uploaded_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"uploaded_by" uuid,
+	"deleted_at" timestamp with time zone
+);
+
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_run_id_checklist_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."checklist_runs"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_uploaded_by_users_id_fk" FOREIGN KEY ("uploaded_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+CREATE UNIQUE INDEX "attachments_dedupe" ON "attachments" USING btree ("item_code","sha256");
+CREATE INDEX "attachments_run_idx" ON "attachments" USING btree ("run_id");
+
+-- ===== db/migrations/0003_attachments_dedupe_per_run.sql =====
+DROP INDEX "attachments_dedupe";
+CREATE UNIQUE INDEX "attachments_dedupe" ON "attachments" USING btree ("run_id","item_code","sha256");
+
 -- ===== db/sql/audit_chain.sql =====
 -- ---------------------------------------------------------------------------
 -- Append-only, hash-chained audit log.

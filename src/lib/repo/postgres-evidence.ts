@@ -6,8 +6,8 @@ export const postgresEvidenceRepository: EvidenceRepository = {
   async addAttachment(input) {
     const db = getDb();
 
-    // The unique index on (item_code, sha256) makes a retry after a dropped
-    // connection a no-op rather than a duplicate.
+    // The unique index on (run_id, item_code, sha256) makes a retry after a
+    // dropped connection a no-op rather than a duplicate.
     const [row] = await db
       .insert(schema.attachments)
       .values({
@@ -40,6 +40,10 @@ export const postgresEvidenceRepository: EvidenceRepository = {
       .from(schema.attachments)
       .where(
         and(
+          // Scoped to this run: matching on (item_code, sha256) alone would
+          // hand back another run's row, and this run would then appear to
+          // have no photo for the point at all.
+          eq(schema.attachments.runId, input.runId),
           eq(schema.attachments.itemCode, input.itemCode),
           eq(schema.attachments.sha256, input.sha256),
         ),

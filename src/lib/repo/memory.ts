@@ -171,6 +171,9 @@ export function createMemoryRepository(): Repository {
 export function __resetMemoryRepositoryForTests(): void {
   delete (globalThis as { __gmMemory?: unknown }).__gmMemory;
   delete (globalThis as { __gmRepo?: unknown }).__gmRepo;
+  // Photos live in their own global store, so clearing only the two above left
+  // attachments leaking between tests.
+  delete (globalThis as { __gmPhotos?: unknown }).__gmPhotos;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -295,8 +298,15 @@ export const memoryEvidenceRepository: EvidenceRepository = {
 
     // Re-uploading the same photo after a dropped connection must not create a
     // duplicate — warehouse wifi makes that a routine event, not an edge case.
+    //
+    // Matched on runId too, so this behaves like the attachments_dedupe index:
+    // without it, a byte-identical photo from an earlier run would be returned
+    // here and this run would show no photo for the point.
     const existing = [...store.values()].find(
-      (a) => a.itemCode === input.itemCode && a.sha256 === input.sha256,
+      (a) =>
+        a.runId === input.runId &&
+        a.itemCode === input.itemCode &&
+        a.sha256 === input.sha256,
     );
     if (existing) return existing;
 
