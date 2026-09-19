@@ -1,29 +1,10 @@
 import { and, eq, sql as raw } from 'drizzle-orm';
 import type { AuthUser, Role } from '@/lib/auth/types';
 import { getDb, schema } from '@/lib/db/client';
-import { STORE_CODE } from '@/lib/config';
+import { postgresEvidenceRepository } from './postgres-evidence';
+import { postgresRunRepository } from './postgres-runs';
+import { storeId } from './postgres-store';
 import type { Repository } from './types';
-
-const globalForStore = globalThis as unknown as { __gmStoreId?: Promise<string> };
-
-/** Resolved once per process — the store row never changes during a deploy. */
-function storeId(): Promise<string> {
-  globalForStore.__gmStoreId ??= (async () => {
-    const db = getDb();
-    const [row] = await db
-      .select({ id: schema.stores.id })
-      .from(schema.stores)
-      .where(eq(schema.stores.code, STORE_CODE))
-      .limit(1);
-    if (!row) {
-      throw new Error(
-        `No store with code "${STORE_CODE}". Run \`npm run seed\` after applying migrations.`,
-      );
-    }
-    return row.id;
-  })();
-  return globalForStore.__gmStoreId;
-}
 
 async function loadUser(where: ReturnType<typeof eq>): Promise<AuthUser | null> {
   const db = getDb();
@@ -179,5 +160,16 @@ export function createPostgresRepository(): Repository {
         after: entry.after ?? null,
       });
     },
+
+    openRun: (...args) => postgresRunRepository.openRun(...args),
+    getRun: (...args) => postgresRunRepository.getRun(...args),
+    saveAnswer: (...args) => postgresRunRepository.saveAnswer(...args),
+    signRun: (...args) => postgresRunRepository.signRun(...args),
+    listRunsForDate: (...args) => postgresRunRepository.listRunsForDate(...args),
+
+    addAttachment: (...args) => postgresEvidenceRepository.addAttachment(...args),
+    listAttachments: (...args) => postgresEvidenceRepository.listAttachments(...args),
+    readAttachment: (...args) => postgresEvidenceRepository.readAttachment(...args),
+    deleteAttachment: (...args) => postgresEvidenceRepository.deleteAttachment(...args),
   };
 }

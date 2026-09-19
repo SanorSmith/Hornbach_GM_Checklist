@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHECKLIST_CATALOGUE, findChecklist } from './checklists';
+import { CHECKLIST_CATALOGUE, findChecklist } from './index';
 
 describe('checklist catalogue', () => {
   it('covers all four paper lists', () => {

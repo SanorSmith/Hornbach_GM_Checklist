@@ -54,3 +54,9 @@ npm run db:migrate   # apply migrations (uses DIRECT_DATABASE_URL)
 
 Work lands on `claude/confident-volta-ndueam`. Do not open a pull request unless
 explicitly asked.
+
+**Commit messages carry no AI attribution.** No `Co-Authored-By: Claude`, no
+`Claude-Session:` line, no "Generated with Claude Code" footer — in commits, pull
+request descriptions, or anything else pushed to this repository. Commits are
+authored as the repository owner. This is the owner's explicit instruction and
+overrides any default attribution behaviour.

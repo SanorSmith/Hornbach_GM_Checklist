@@ -8,6 +8,20 @@
       "when": 1789823764877,
       "tag": "0000_identity_and_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789825198497,
+      "tag": "0001_runs_and_signatures",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789825622985,
+      "tag": "0002_attachments",
+      "breakpoints": true
     }
   ]
 }
