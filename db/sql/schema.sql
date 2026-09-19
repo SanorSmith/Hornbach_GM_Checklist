@@ -214,7 +214,7 @@ CREATE INDEX "attachments_run_idx" ON "attachments" USING btree ("run_id");
 DROP INDEX "attachments_dedupe";
 CREATE UNIQUE INDEX "attachments_dedupe" ON "attachments" USING btree ("run_id","item_code","sha256");
 
--- ===== db/sql/audit_chain.sql =====
+-- ===== db/migrations/0004_audit_chain.sql =====
 -- ---------------------------------------------------------------------------
 -- Append-only, hash-chained audit log.
 --
@@ -225,6 +225,11 @@ CREATE UNIQUE INDEX "attachments_dedupe" ON "attachments" USING btree ("run_id",
 -- Immutability is enforced with a TRIGGER rather than REVOKE on purpose: on
 -- Neon the application connects as neondb_owner, and an owner can grant its
 -- own privileges back. A trigger stops the owner too.
+--
+-- Hand-written: drizzle-kit generates migrations by diffing the Drizzle schema,
+-- which does not model functions or triggers. It lived in db/sql/audit_chain.sql
+-- until it turned out that `npm run db:migrate` therefore skipped it, leaving an
+-- audit log that was neither chained nor immutable with nothing to say so.
 --
 -- Safe to re-run.
 -- ---------------------------------------------------------------------------
@@ -267,6 +272,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS audit_log_chain ON audit_log;
+
 CREATE TRIGGER audit_log_chain
   BEFORE INSERT ON audit_log
   FOR EACH ROW EXECUTE FUNCTION gm_audit_chain();
@@ -280,6 +286,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS audit_log_immutable ON audit_log;
+
 CREATE TRIGGER audit_log_immutable
   BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW EXECUTE FUNCTION gm_audit_immutable();

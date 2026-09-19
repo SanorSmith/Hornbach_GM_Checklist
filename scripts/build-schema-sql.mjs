@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 /**
- * Concatenates the drizzle migrations plus the hand-written SQL into a single
- * db/sql/schema.sql that can be pasted straight into the Neon SQL editor.
+ * Concatenates the drizzle migrations into a single db/sql/schema.sql that can
+ * be pasted straight into the Neon SQL editor.
  *
  * This exists because the schema has to be creatable by someone who has a
  * browser and no local toolchain.
+ *
+ * Everything comes from db/migrations. Hand-written SQL used to be appended
+ * from db/sql/ as well, which quietly made this file and `npm run db:migrate`
+ * produce different databases — the audit chain existed only here. Anything the
+ * schema needs belongs in a migration.
  */
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const MIGRATIONS = 'db/migrations';
-const EXTRA = ['db/sql/audit_chain.sql'];
 const OUT = 'db/sql/schema.sql';
 
 const migrations = readdirSync(MIGRATIONS)
@@ -34,12 +38,6 @@ for (const file of migrations) {
   parts.push('');
 }
 
-for (const file of EXTRA) {
-  parts.push(`-- ===== ${file} =====`);
-  parts.push(readFileSync(file, 'utf8'));
-  parts.push('');
-}
-
 mkdirSync('db/sql', { recursive: true });
 writeFileSync(OUT, parts.join('\n'));
-console.log(`Wrote ${OUT} from ${migrations.length} migration(s) + ${EXTRA.length} extra file(s).`);
+console.log(`Wrote ${OUT} from ${migrations.length} migration(s).`);
