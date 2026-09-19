@@ -155,6 +155,11 @@ export function createMemoryRepository(): Repository {
     saveAnswer: (...args) => memoryRunRepository.saveAnswer(...args),
     signRun: (...args) => memoryRunRepository.signRun(...args),
     listRunsForDate: (...args) => memoryRunRepository.listRunsForDate(...args),
+
+    addAttachment: (...args) => memoryEvidenceRepository.addAttachment(...args),
+    listAttachments: (...args) => memoryEvidenceRepository.listAttachments(...args),
+    readAttachment: (...args) => memoryEvidenceRepository.readAttachment(...args),
+    deleteAttachment: (...args) => memoryEvidenceRepository.deleteAttachment(...args),
   };
 }
 
@@ -262,3 +267,66 @@ export const memoryRunRepository: RunRepository = {
 export function __resetRunsForTests(): void {
   delete (globalThis as { __gmRuns?: unknown }).__gmRuns;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Evidence (demo mode)                                                       */
+/* -------------------------------------------------------------------------- */
+
+import type { AttachmentMeta, EvidenceRepository } from './types';
+
+interface StoredAttachment extends AttachmentMeta {
+  runId: string;
+  sha256: string;
+  bytes: Buffer;
+}
+
+const globalForPhotos = globalThis as unknown as {
+  __gmPhotos?: Map<string, StoredAttachment>;
+};
+
+function photoStore(): Map<string, StoredAttachment> {
+  globalForPhotos.__gmPhotos ??= new Map();
+  return globalForPhotos.__gmPhotos;
+}
+
+export const memoryEvidenceRepository: EvidenceRepository = {
+  async addAttachment(input) {
+    const store = photoStore();
+
+    // Re-uploading the same photo after a dropped connection must not create a
+    // duplicate — warehouse wifi makes that a routine event, not an edge case.
+    const existing = [...store.values()].find(
+      (a) => a.itemCode === input.itemCode && a.sha256 === input.sha256,
+    );
+    if (existing) return existing;
+
+    const record: StoredAttachment = {
+      id: randomUUID(),
+      runId: input.runId,
+      itemCode: input.itemCode,
+      groupKey: input.groupKey,
+      contentType: input.contentType,
+      byteSize: input.bytes.byteLength,
+      sha256: input.sha256,
+      bytes: input.bytes,
+      uploadedAt: new Date().toISOString(),
+    };
+    store.set(record.id, record);
+    return record;
+  },
+
+  async listAttachments(runId) {
+    return [...photoStore().values()]
+      .filter((a) => a.runId === runId)
+      .map(({ bytes: _bytes, sha256: _sha, runId: _run, ...meta }) => meta);
+  },
+
+  async readAttachment(id) {
+    const found = photoStore().get(id);
+    return found ? { contentType: found.contentType, bytes: found.bytes } : null;
+  },
+
+  async deleteAttachment(id) {
+    photoStore().delete(id);
+  },
+};

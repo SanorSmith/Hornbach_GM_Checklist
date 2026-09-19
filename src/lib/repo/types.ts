@@ -8,7 +8,7 @@ import type { AuthUser, Role, SessionRecord } from '@/lib/auth/types';
  * The in-memory one is also the fixture the tests run against, which is why
  * this interface is worth having rather than calling drizzle directly.
  */
-export interface Repository extends RunRepository {
+export interface Repository extends RunRepository, EvidenceRepository {
   readonly mode: 'demo' | 'live';
 
   findUserByUsername(username: string): Promise<AuthUser | null>;
@@ -122,4 +122,33 @@ export interface RunRepository {
   ): Promise<void>;
 
   listRunsForDate(businessDate: string): Promise<RunDetail[]>;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Evidence                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export interface AttachmentMeta {
+  id: string;
+  itemCode: string;
+  groupKey: string | null;
+  contentType: string;
+  byteSize: number;
+  uploadedAt: string;
+}
+
+export interface EvidenceRepository {
+  addAttachment(input: {
+    runId: string;
+    itemCode: string;
+    groupKey: string | null;
+    contentType: string;
+    bytes: Buffer;
+    sha256: string;
+    uploadedBy: string;
+  }): Promise<AttachmentMeta>;
+
+  listAttachments(runId: string): Promise<AttachmentMeta[]>;
+  readAttachment(id: string): Promise<{ contentType: string; bytes: Buffer } | null>;
+  deleteAttachment(id: string, userId: string): Promise<void>;
 }

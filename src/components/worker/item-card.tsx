@@ -1,8 +1,9 @@
 'use client';
 
-import { AlertTriangle, Camera, Lock } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, Lock } from 'lucide-react';
 import { Input, Textarea } from '@/components/ui/input';
+import type { AttachmentMeta } from '@/lib/repo/types';
+import { PhotoCapture } from './photo-capture';
 import { cn, formatRemaining, formatTime } from '@/lib/utils';
 import type { GmRules } from '@/lib/rules/schema';
 import type { ItemEvaluation, ResolvedItem } from '@/lib/rules/types';
@@ -42,6 +43,9 @@ export function ItemCard({
   ordinalLabel,
   onChange,
   disabled,
+  runId,
+  photos,
+  onPhotosChanged,
 }: {
   item: ResolvedItem;
   rules: GmRules;
@@ -50,6 +54,9 @@ export function ItemCard({
   ordinalLabel: string;
   onChange: (patch: Partial<RunItemStateRecord>) => void;
   disabled: boolean;
+  runId: string;
+  photos: AttachmentMeta[];
+  onPhotosChanged: () => void;
 }) {
   const now = new Date();
   const mode = rules.answer?.mode ?? 'JA_NEJ_INGET_BEHOV';
@@ -61,6 +68,17 @@ export function ItemCard({
   const answer = state?.answer ?? null;
   const showNote =
     answer !== null && (rules.evidence?.note?.requiredIfAnswer ?? []).includes(answer);
+
+  // Mirrors the engine's rule: always, or only for the answers listed, or
+  // because "Inget behov" needs a photo to prove there was nothing to do.
+  const photoRules = rules.evidence?.photo;
+  const photoGroups = photoRules?.groups ?? [];
+  const photoNeeded =
+    photoRules?.required === 'always' ||
+    (photoRules?.required === 'if_answer' &&
+      answer !== null &&
+      (photoRules.ifAnswer ?? []).includes(answer)) ||
+    (answer === 'INGET_BEHOV' && rules.answer?.onIngetBehov?.requiresPhoto === true);
 
   const visibleFields = (rules.fields ?? []).filter(
     (field) =>
@@ -179,12 +197,41 @@ export function ItemCard({
             </div>
           ))}
 
-          {rules.evidence?.photo?.required && rules.evidence.photo.required !== 'never' ? (
-            <p className="gm-hint flex items-center gap-2">
-              <Camera className="h-4 w-4 shrink-0" aria-hidden />
-              {rules.evidence.photo.hintSv ?? 'Bild krävs.'}
-              <Badge tone="neutral">Bilder i nästa steg</Badge>
-            </p>
+          {photoNeeded ? (
+            <div className="space-y-3 border-t border-[hsl(var(--gm-border))] pt-3">
+              {rules.evidence?.photo?.hintSv ? (
+                <p className="gm-hint m-0">{rules.evidence.photo.hintSv}</p>
+              ) : null}
+              {photoGroups.length > 0 ? (
+                photoGroups.map((group) => (
+                  <PhotoCapture
+                    key={group.key}
+                    runId={runId}
+                    itemCode={item.code}
+                    groupKey={group.key}
+                    label={group.labelSv}
+                    minCount={group.minCount}
+                    photos={photos.filter((p) => p.groupKey === group.key)}
+                    disabled={disabled}
+                    onChange={onPhotosChanged}
+                  />
+                ))
+              ) : (
+                <PhotoCapture
+                  runId={runId}
+                  itemCode={item.code}
+                  groupKey={null}
+                  minCount={
+                    rules.evidence?.photo?.minCount ??
+                    rules.answer?.onIngetBehov?.minPhotos ??
+                    1
+                  }
+                  photos={photos}
+                  disabled={disabled}
+                  onChange={onPhotosChanged}
+                />
+              )}
+            </div>
           ) : null}
 
           {evaluation.errors

@@ -5,6 +5,7 @@ import { getSeed, getTemplate } from '@/lib/checklists';
 import { STORE_TIME_ZONE } from '@/lib/config';
 import { repository } from '@/lib/repo';
 import { evaluateRun } from '@/lib/rules';
+import { toEngineItems } from '@/lib/runs/engine-input';
 import { buildSnapshot, contentHashOf, signatureHashOf } from '@/lib/signature';
 import { zonedToInstant } from '@/lib/rules/time';
 
@@ -43,6 +44,8 @@ export async function POST(
       return NextResponse.json({ ok: false, error: 'Okänd checklista.' }, { status: 404 });
     }
 
+    const attachments = await repo.listAttachments(runId);
+
     const evaluation = evaluateRun({
       template,
       run: {
@@ -52,14 +55,7 @@ export async function POST(
         shiftStartAt: zonedToInstant(run.businessDate, seed.shiftStart, STORE_TIME_ZONE).toISOString(),
         shiftEndAt: zonedToInstant(run.businessDate, seed.shiftEnd, STORE_TIME_ZONE).toISOString(),
       },
-      items: run.items.map((i) => ({
-        itemId: i.itemCode,
-        answer: i.answer ?? null,
-        answerCode: i.answerCode ?? null,
-        note: i.note ?? null,
-        fields: i.fields ?? {},
-        answeredAt: i.answeredAt ?? null,
-      })),
+      items: toEngineItems(template, run.items, attachments),
       now: new Date(),
     });
 

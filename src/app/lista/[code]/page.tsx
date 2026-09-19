@@ -25,13 +25,15 @@ export default async function RunPage({ params }: { params: Promise<{ code: stri
 
   // Opening is idempotent: two people starting the morning list land on the
   // same run rather than two half-finished ones.
-  const run = await repository().openRun({
+  const repo = repository();
+  const run = await repo.openRun({
     templateCode: template.code,
     templateVersion: template.version,
     businessDate,
     shift: template.shift,
     userId: session.userId,
   });
+  const attachments = await repo.listAttachments(run.id);
 
   return (
     <>
@@ -53,6 +55,7 @@ export default async function RunPage({ params }: { params: Promise<{ code: stri
       <RunView
         template={template}
         run={run}
+        initialAttachments={attachments}
         canSign
         context={{
           businessDate,

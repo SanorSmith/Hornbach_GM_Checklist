@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { evaluateRun } from '@/lib/rules';
+import { toEngineItems } from '@/lib/runs/engine-input';
 import { mergeRules } from '@/lib/rules/merge';
 import type { ResolvedTemplate, RunContext } from '@/lib/rules/types';
-import type { RunDetail, RunItemStateRecord } from '@/lib/repo/types';
+import type { AttachmentMeta, RunDetail, RunItemStateRecord } from '@/lib/repo/types';
 import { ItemCard } from './item-card';
 
 /**
@@ -24,17 +25,20 @@ export function RunView({
   run,
   context,
   canSign,
+  initialAttachments,
 }: {
   template: ResolvedTemplate;
   run: RunDetail;
   context: RunContext;
   canSign: boolean;
+  initialAttachments: AttachmentMeta[];
 }) {
   const router = useRouter();
   const [items, setItems] = useState<RunItemStateRecord[]>(run.items);
   const [now, setNow] = useState(() => new Date());
   const [saving, setSaving] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<AttachmentMeta[]>(initialAttachments);
   const signed = run.status === 'SUBMITTED';
 
   // Deadlines are the whole point of this screen, so the countdowns must move.
@@ -48,17 +52,10 @@ export function RunView({
       evaluateRun({
         template,
         run: context,
-        items: items.map((i) => ({
-          itemId: i.itemCode,
-          answer: i.answer ?? null,
-          answerCode: i.answerCode ?? null,
-          note: i.note ?? null,
-          fields: i.fields ?? {},
-          answeredAt: i.answeredAt ?? null,
-        })),
+        items: toEngineItems(template, items, attachments),
         now,
       }),
-    [template, context, items, now],
+    [template, context, items, attachments, now],
   );
 
   const mergedRules = useMemo(() => {
@@ -112,6 +109,12 @@ export function RunView({
     },
     [persist],
   );
+
+  const refreshPhotos = useCallback(async () => {
+    const response = await fetch(`/api/runs/${run.id}/photos`);
+    const body = await response.json().catch(() => null);
+    if (body?.ok) setAttachments(body.attachments as AttachmentMeta[]);
+  }, [run.id]);
 
   const sign = async () => {
     setSignError(null);
@@ -202,6 +205,9 @@ export function RunView({
                     ordinalLabel={item.ordinal}
                     disabled={signed}
                     onChange={(patch) => update(item.code, patch)}
+                    runId={run.id}
+                    photos={attachments.filter((a) => a.itemCode === item.code)}
+                    onPhotosChanged={() => void refreshPhotos()}
                   />
                 ))}
               </ul>
