@@ -13,9 +13,10 @@ before changing anything about rules, deadlines or wording.
 - **One database connection.** `src/lib/db/client.ts` is the only place that may
   construct one. ESLint enforces this — a pool per route handler exhausts the
   Supabase pooler. Do not disable that rule to "just get it working".
-- **`/api/*` is never public.** Middleware guards pages; every route handler
-  authorizes itself with `requireUser()` / `requireRole()`. Listing `/api` as a
-  public path leaves every endpoint open.
+- **`/api/*` is never public.** `src/proxy.ts` (Next 16's replacement for
+  middleware) guards pages only; every route handler authorizes itself with
+  `requireUser()` / `requireRole()`. Listing `/api` as a public path leaves
+  every endpoint open.
 - **Type errors fail the build.** `ignoreBuildErrors` stays `false`.
 - **Deadlines are resolved in Postgres**, via `AT TIME ZONE 'Europe/Stockholm'`
   — never with JavaScript date arithmetic. DST moves these twice a year.

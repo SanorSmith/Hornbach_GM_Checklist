@@ -37,8 +37,8 @@ export async function currentSession(): Promise<SessionData | null> {
 /**
  * For API route handlers. Throws, and the route turns it into a status code.
  *
- * Every route calls this for itself. Middleware guards *pages* only — treating
- * `/api` as covered by middleware is how APIs end up unauthenticated.
+ * Every route calls this for itself. `src/proxy.ts` guards *pages* only —
+ * treating `/api` as covered there is how APIs end up unauthenticated.
  */
 export async function requireUser(): Promise<SessionData> {
   const session = await currentSession();

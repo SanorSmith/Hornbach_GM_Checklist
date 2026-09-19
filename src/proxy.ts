@@ -9,12 +9,12 @@ import { NextResponse, type NextRequest } from 'next/server';
  * `sessions` row server-side.
  *
  * `/api` is not listed as public and is not "covered" by this file either —
- * every route handler authorizes itself. Assuming middleware protects the API
+ * every route handler authorizes itself. Assuming this file protects the API
  * is how APIs end up wide open.
  */
 const PUBLIC_PAGE_PATHS = ['/login'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (PUBLIC_PAGE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
