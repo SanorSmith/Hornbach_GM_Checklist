@@ -1,0 +1,303 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   Tokens
+
+   Light is the daytime/desktop default. Dark is not a preference toggle here —
+   the KVÄLL shift finishes at 19:45 in a dim yard, and a white screen at arm's
+   length is genuinely hard to read, so dark mode is a supported working mode.
+   --------------------------------------------------------------------------- */
+@layer base {
+  :root {
+    /* No webfont: a Zebra on poor yard wifi should not wait on a font download,
+       and the system stack renders faster and hints better at small sizes. */
+    --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+      Arial, 'Noto Sans', sans-serif;
+
+    --gm-bg: 210 20% 97%;
+    --gm-surface: 0 0% 100%;
+    --gm-surface-muted: 210 20% 94%;
+    --gm-border: 214 15% 85%;
+    --gm-fg: 220 22% 14%;
+    --gm-fg-muted: 220 10% 40%;
+    --gm-brand: 26 100% 50%;
+    --gm-brand-fg: 0 0% 100%;
+    --gm-ring: 26 100% 42%;
+    --gm-shadow: 220 25% 12%;
+  }
+
+  .dark {
+    --gm-bg: 220 20% 9%;
+    --gm-surface: 220 18% 13%;
+    --gm-surface-muted: 220 16% 18%;
+    --gm-border: 220 12% 27%;
+    --gm-fg: 210 20% 96%;
+    --gm-fg-muted: 215 12% 68%;
+    --gm-brand: 26 100% 56%;
+    --gm-brand-fg: 220 30% 10%;
+    --gm-ring: 26 100% 62%;
+    --gm-shadow: 0 0% 0%;
+  }
+
+  * {
+    @apply border-[hsl(var(--gm-border))];
+  }
+
+  html {
+    /* Never let a mis-set font size shrink a control below the touch floor. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-[hsl(var(--gm-bg))] text-[hsl(var(--gm-fg))] antialiased;
+    /* Handhelds are held at arm's length in poor light. 16px is the floor. */
+    font-size: 16px;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible focus is a safety feature when the screen is dirty and sunlit. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-[hsl(var(--gm-ring))] ring-offset-2 ring-offset-[hsl(var(--gm-bg))];
+  }
+
+  /* An alarm that flashes must not be shown to someone who asked it not to. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Components
+   --------------------------------------------------------------------------- */
+@layer components {
+  /* --- Surfaces ---------------------------------------------------------- */
+  .gm-card {
+    @apply rounded-gm border border-[hsl(var(--gm-border))] bg-[hsl(var(--gm-surface))]
+           shadow-sm;
+  }
+
+  .gm-card-pad {
+    @apply p-4 sm:p-5;
+  }
+
+  .gm-panel {
+    @apply rounded-gm bg-[hsl(var(--gm-surface-muted))] p-4;
+  }
+
+  .gm-muted {
+    @apply text-[hsl(var(--gm-fg-muted))];
+  }
+
+  /* --- Worker shell ------------------------------------------------------ */
+  /* Respects the notch/gesture bar so the sign button is never half-hidden. */
+  .gm-shell {
+    @apply mx-auto w-full max-w-3xl px-4;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  }
+
+  /* Sticky action bar at the bottom of a run — thumb-reachable one-handed. */
+  .gm-actionbar {
+    @apply sticky bottom-0 z-20 flex gap-3 border-t border-[hsl(var(--gm-border))]
+           bg-[hsl(var(--gm-surface))]/95 px-4 py-3 backdrop-blur;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+  }
+
+  /* --- Buttons ----------------------------------------------------------- */
+  .gm-btn {
+    @apply inline-flex min-h-touch select-none items-center justify-center gap-2
+           rounded-gm px-5 text-base font-semibold leading-none
+           transition-colors disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .gm-btn-primary {
+    @apply gm-btn bg-[hsl(var(--gm-brand))] text-[hsl(var(--gm-brand-fg))]
+           hover:bg-brand-600 active:bg-brand-700;
+  }
+
+  .gm-btn-secondary {
+    @apply gm-btn border border-[hsl(var(--gm-border))] bg-[hsl(var(--gm-surface))]
+           text-[hsl(var(--gm-fg))] hover:bg-[hsl(var(--gm-surface-muted))];
+  }
+
+  .gm-btn-ghost {
+    @apply gm-btn text-[hsl(var(--gm-fg))] hover:bg-[hsl(var(--gm-surface-muted))];
+  }
+
+  .gm-btn-danger {
+    @apply gm-btn bg-nej text-nej-fg hover:brightness-110;
+  }
+
+  /* --- Answer controls (JA / NEJ / Inget behov) --------------------------- */
+  /* Deliberately oversized: these are pressed hundreds of times a shift, with
+     gloves on, and a mis-tap writes a wrong answer into a signed record. */
+  .gm-answer {
+    @apply flex min-h-[3.5rem] flex-1 items-center justify-center rounded-gm border-2
+           px-3 text-base font-bold uppercase tracking-wide transition-colors;
+  }
+
+  .gm-answer-ja {
+    @apply gm-answer border-ja text-ja hover:bg-ja-soft;
+  }
+  .gm-answer-ja[aria-pressed='true'] {
+    @apply bg-ja text-ja-fg;
+  }
+
+  .gm-answer-nej {
+    @apply gm-answer border-nej text-nej hover:bg-nej-soft;
+  }
+  .gm-answer-nej[aria-pressed='true'] {
+    @apply bg-nej text-nej-fg;
+  }
+
+  .gm-answer-ingetbehov {
+    @apply gm-answer border-ingetbehov text-ingetbehov hover:bg-ingetbehov-soft;
+  }
+  .gm-answer-ingetbehov[aria-pressed='true'] {
+    @apply bg-ingetbehov text-ingetbehov-fg;
+  }
+
+  /* --- Forms ------------------------------------------------------------- */
+  .gm-label {
+    @apply mb-1.5 block text-sm font-semibold text-[hsl(var(--gm-fg))];
+  }
+
+  .gm-input {
+    @apply min-h-touch w-full rounded-gm border border-[hsl(var(--gm-border))]
+           bg-[hsl(var(--gm-surface))] px-3 text-base text-[hsl(var(--gm-fg))]
+           placeholder:text-[hsl(var(--gm-fg-muted))] disabled:opacity-50;
+  }
+
+  .gm-textarea {
+    @apply gm-input py-3;
+    min-height: 6rem;
+  }
+
+  .gm-input-invalid {
+    @apply border-2 border-nej;
+  }
+
+  .gm-hint {
+    @apply mt-1.5 text-sm text-[hsl(var(--gm-fg-muted))];
+  }
+
+  .gm-error {
+    @apply mt-1.5 text-sm font-semibold text-nej;
+  }
+
+  /* --- Checklist items --------------------------------------------------- */
+  .gm-item {
+    @apply gm-card gm-card-pad space-y-3;
+  }
+
+  .gm-item-blocked {
+    @apply opacity-60;
+  }
+
+  .gm-item-number {
+    @apply inline-flex h-7 min-w-7 items-center justify-center rounded-full
+           bg-[hsl(var(--gm-surface-muted))] px-2 text-sm font-bold tabular-nums;
+  }
+
+  .gm-item-text {
+    @apply text-base font-medium leading-snug;
+  }
+
+  .gm-section-header {
+    @apply mb-3 mt-6 flex items-baseline justify-between gap-3 border-b
+           border-[hsl(var(--gm-border))] pb-2;
+  }
+
+  .gm-section-title {
+    @apply text-lg font-bold;
+  }
+
+  /* --- Deadlines --------------------------------------------------------- */
+  .gm-countdown {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm
+           font-bold tabular-nums;
+  }
+  .gm-countdown-ok {
+    @apply gm-countdown bg-ja-soft text-ja;
+  }
+  .gm-countdown-soon {
+    @apply gm-countdown bg-brand-100 text-due-soon;
+  }
+  .gm-countdown-late {
+    @apply gm-countdown bg-nej-soft text-nej;
+  }
+
+  /* --- Badges ------------------------------------------------------------ */
+  .gm-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs
+           font-bold uppercase tracking-wide;
+  }
+  .gm-badge-neutral {
+    @apply gm-badge bg-[hsl(var(--gm-surface-muted))] text-[hsl(var(--gm-fg-muted))];
+  }
+  .gm-badge-ja {
+    @apply gm-badge bg-ja-soft text-ja;
+  }
+  .gm-badge-nej {
+    @apply gm-badge bg-nej-soft text-nej;
+  }
+  .gm-badge-brand {
+    @apply gm-badge bg-brand-100 text-brand-700;
+  }
+
+  /* --- Tables (leader/desktop) ------------------------------------------- */
+  .gm-table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .gm-table th {
+    @apply border-b border-[hsl(var(--gm-border))] px-3 py-2 font-semibold
+           text-[hsl(var(--gm-fg-muted))];
+  }
+  .gm-table td {
+    @apply border-b border-[hsl(var(--gm-border))] px-3 py-2 align-top;
+  }
+
+  /* The same data as stacked cards on a handheld. Used by gm-table's
+     mobile branch so the leader view stays usable on a Zebra. */
+  .gm-card-row {
+    @apply gm-card gm-card-pad mb-2 space-y-1;
+  }
+  .gm-card-row dt {
+    @apply text-xs font-semibold uppercase tracking-wide text-[hsl(var(--gm-fg-muted))];
+  }
+
+  /* --- Alarm takeover ---------------------------------------------------- */
+  /* Full-screen, unmissable, and dismissible only by acting on the item. */
+  .gm-alarm {
+    @apply fixed inset-0 z-50 flex flex-col items-center justify-center gap-6
+           bg-nej p-6 text-center text-nej-fg;
+  }
+  .gm-alarm-time {
+    @apply text-6xl font-black tabular-nums animate-alarm-pulse;
+  }
+
+  /* --- Offline / sync ---------------------------------------------------- */
+  .gm-offline-banner {
+    @apply flex items-center gap-2 bg-due-soon px-4 py-2 text-sm font-semibold
+           text-white;
+  }
+  .gm-sync-chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-[hsl(var(--gm-surface-muted))]
+           px-2 py-0.5 text-xs font-medium text-[hsl(var(--gm-fg-muted))];
+  }
+
+  /* --- Screen-reader only ------------------------------------------------ */
+  .gm-sr-only {
+    @apply absolute h-px w-px overflow-hidden whitespace-nowrap border-0 p-0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+}
