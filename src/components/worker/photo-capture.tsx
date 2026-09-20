@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import imageCompression from 'browser-image-compression';
 import { Camera, Trash2 } from 'lucide-react';
+import { PhotoLightbox } from '@/components/ui/photo-lightbox';
 import type { AttachmentMeta } from '@/lib/repo/types';
 
 /**
@@ -37,6 +38,7 @@ export function PhotoCapture({
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<number | null>(null);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -117,13 +119,22 @@ export function PhotoCapture({
         <ul className="flex flex-wrap gap-2">
           {photos.map((photo) => (
             <li key={photo.id} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element -- bytes are
-                  served from our own authenticated route, not an optimisable URL */}
-              <img
-                src={`/api/photos/${photo.id}`}
-                alt="Bifogad bild"
-                className="h-20 w-20 rounded-gm border border-[hsl(var(--gm-border))] object-cover"
-              />
+              {/* Tappable: the thumbnail is cropped square, so checking that
+                  the shot is usable means opening it. */}
+              <button
+                type="button"
+                onClick={() => setViewing(photos.indexOf(photo))}
+                className="block rounded-gm focus-visible:outline focus-visible:outline-2"
+                aria-label="Öppna bilden i full storlek"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- bytes are
+                    served from our own authenticated route, not an optimisable URL */}
+                <img
+                  src={`/api/photos/${photo.id}`}
+                  alt="Bifogad bild"
+                  className="h-20 w-20 rounded-gm border border-[hsl(var(--gm-border))] object-cover"
+                />
+              </button>
               {!disabled ? (
                 <button
                   type="button"
@@ -140,6 +151,14 @@ export function PhotoCapture({
       ) : null}
 
       {error ? <p className="gm-error">{error}</p> : null}
+
+      <PhotoLightbox
+        photos={photos}
+        index={viewing}
+        {...(label ? { caption: label } : {})}
+        onIndexChange={setViewing}
+        onClose={() => setViewing(null)}
+      />
     </div>
   );
 }

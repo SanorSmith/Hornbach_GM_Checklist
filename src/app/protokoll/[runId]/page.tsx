@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DemoBanner } from '@/components/layout/demo-banner';
 import { PrintButton } from '@/components/reports/print-button';
+import { RecordPhotos } from '@/components/reports/record-photos';
 import { requireLeaderOrRedirect } from '@/lib/auth/guard';
 import { t } from '@/lib/i18n';
 import type { ControlStatus } from '@/lib/repo/types';
@@ -59,24 +60,11 @@ function Item({ item }: { item: RecordItem }) {
             </p>
           )}
 
-          {item.photos.length > 0 && (
-            <div className="mt-2">
-              <p className="gm-muted text-xs">
-                {fill('prot.photoCount', { count: item.photos.length })}
-              </p>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {item.photos.map((photo) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={photo.id}
-                    src={`/api/photos/${photo.id}`}
-                    alt=""
-                    className="gm-print-photo h-24 w-auto rounded-gm border border-[hsl(var(--gm-border))]"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          <RecordPhotos
+            photos={item.photos}
+            caption={`${item.ordinal}. ${item.textSv}`}
+            countLabel={fill('prot.photoCount', { count: item.photos.length })}
+          />
         </div>
       </div>
     </li>
