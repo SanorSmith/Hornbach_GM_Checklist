@@ -71,31 +71,29 @@ const api = async (path, init = {}) => {
   return { ok: res.ok, status: res.status, body };
 };
 
-const me = await api('/v2/user');
-if (!me.ok) {
-  console.error(`Vercel rejected the token (${me.status}). Run \`npx vercel login\` again.`);
-  process.exit(1);
-}
-console.log(`authenticated as: ${me.body.user?.username ?? me.body.user?.email ?? 'unknown'}`);
-
-// Find the project, across personal scope and any teams.
-const teams = await api('/v2/teams');
-const scopes = [undefined, ...(teams.body.teams ?? []).map((t) => t.id)];
-
+// Gate on reaching the project, not on /v2/user: a project-scoped token can do
+// everything needed here while being forbidden from reading the account.
 let scope = null;
-for (const teamId of scopes) {
-  const q = teamId ? `?teamId=${teamId}` : '';
-  const project = await api(`/v9/projects/${PROJECT}${q}`);
-  if (project.ok) {
-    scope = { teamId, id: project.body.id };
-    console.log(`project: ${PROJECT}${teamId ? ` (team ${teamId})` : ' (personal)'}`);
-    break;
+const direct = await api(`/v9/projects/${PROJECT}`);
+if (direct.ok) {
+  scope = { teamId: undefined, id: direct.body.id };
+} else {
+  const teams = await api('/v2/teams');
+  for (const t of teams.body.teams ?? []) {
+    const project = await api(`/v9/projects/${PROJECT}?teamId=${t.id}`);
+    if (project.ok) {
+      scope = { teamId: t.id, id: project.body.id };
+      break;
+    }
   }
 }
 if (!scope) {
-  console.error(`Project "${PROJECT}" not found in any scope this token can see.`);
+  console.error(
+    `Could not reach project "${PROJECT}" with this token. Check that it is scoped to the team that owns it.`,
+  );
   process.exit(1);
 }
+console.log(`project: ${PROJECT} (${scope.id})`);
 
 const q = scope.teamId ? `?teamId=${scope.teamId}&upsert=true` : '?upsert=true';
 let failed = 0;
