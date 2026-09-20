@@ -181,15 +181,55 @@ describe('buildRunRecord', () => {
     expect(record.footerNotesSv).toContain('hinner inte');
   });
 
-  it('names each photo after its point, so a printed record can cite it', () => {
+  it('names each photo after its day and its point, so a printed record can cite it', () => {
     // Nothing stores an original filename: the camera's name is neither kept
     // nor meaningful once the photo is recompressed on the device.
-    expect(photoNameFor('GM_LF_MORGON.CONT.02', 'image/jpeg', 0)).toBe('CONT.02-1.jpg');
-    expect(photoNameFor('GM_LF_MORGON.CONT.02', 'image/webp', 1)).toBe('CONT.02-2.webp');
-    expect(photoNameFor('GM_DORR.BEL.01', 'image/png', 0)).toBe('BEL.01-1.png');
+    expect(photoNameFor('GM_LF_MORGON.CONT.02', 'image/jpeg', 0, TODAY)).toBe(
+      '2026-09-20-CONT.02-1.jpg',
+    );
+    expect(photoNameFor('GM_LF_MORGON.CONT.02', 'image/webp', 1, TODAY)).toBe(
+      '2026-09-20-CONT.02-2.webp',
+    );
+    expect(photoNameFor('GM_DORR.DORR.01', 'image/png', 0, '2026-01-02')).toBe(
+      '2026-01-02-DORR.01-1.png',
+    );
+  });
+
+  it('leads with the date so the names sort chronologically', () => {
+    const names = ['2026-09-20', '2026-01-02', '2026-12-31'].map((day) =>
+      photoNameFor('GM_DORR.DORR.01', 'image/jpeg', 0, day),
+    );
+    expect([...names].sort()).toEqual([
+      '2026-01-02-DORR.01-1.jpg',
+      '2026-09-20-DORR.01-1.jpg',
+      '2026-12-31-DORR.01-1.jpg',
+    ]);
+  });
+
+  it("uses the run's business date, not the day the photo was uploaded", async () => {
+    const [user] = await repository().listUsers();
+    const run = await openRun('GM_DORR');
+    await repository().addAttachment({
+      runId: run.id,
+      itemCode: 'GM_DORR.DORR.01',
+      groupKey: null,
+      contentType: 'image/jpeg',
+      bytes: Buffer.from('a-photo'),
+      sha256: 'abc',
+      uploadedBy: user!.id,
+    });
+
+    const record = (await buildRunRecord(run.id))!;
+    const photo = record.sections.flatMap((s) => s.items).flatMap((i) => i.photos)[0]!;
+
+    // The run is dated TODAY; the upload happened just now, whenever that is.
+    expect(photo.name.startsWith(TODAY)).toBe(true);
+    expect(photo.shortId).toHaveLength(8);
   });
 
   it('falls back rather than inventing an extension it does not know', () => {
-    expect(photoNameFor('GM_GPL.MOR.03', 'application/octet-stream', 0)).toBe('MOR.03-1.bild');
+    expect(photoNameFor('GM_GPL.MOR.03', 'application/octet-stream', 0, TODAY)).toBe(
+      '2026-09-20-MOR.03-1.bild',
+    );
   });
 });
