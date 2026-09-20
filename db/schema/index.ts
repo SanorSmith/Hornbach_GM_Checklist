@@ -13,5 +13,6 @@ export * from './enums';
 export * from './stores';
 export * from './identity';
 export * from './runs';
+export * from './assignments';
 export * from './evidence';
 export * from './audit';

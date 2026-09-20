@@ -8,7 +8,39 @@ import type { AuthUser, Role, SessionRecord } from '@/lib/auth/types';
  * The in-memory one is also the fixture the tests run against, which is why
  * this interface is worth having rather than calling drizzle directly.
  */
-export interface Repository extends RunRepository, EvidenceRepository {
+
+/* -------------------------------------------------------------------------- */
+/* Assignments                                                                */
+/* -------------------------------------------------------------------------- */
+
+/** Who is expected to do a checklist today, as opposed to who did. */
+export interface Assignment {
+  templateCode: string;
+  slot: number;
+  assignedTo: string;
+  /** Display name, resolved for rendering. */
+  assignedToName: string;
+  assignedAt: string;
+}
+
+export interface AssignmentRepository {
+  listAssignments(businessDate: string): Promise<Assignment[]>;
+  /** Replaces any existing assignment for the same list, day and slot. */
+  setAssignment(input: {
+    businessDate: string;
+    templateCode: string;
+    slot: number;
+    assignedTo: string;
+    assignedBy: string;
+  }): Promise<void>;
+  clearAssignment(input: {
+    businessDate: string;
+    templateCode: string;
+    slot: number;
+  }): Promise<void>;
+}
+
+export interface Repository extends RunRepository, EvidenceRepository, AssignmentRepository {
   readonly mode: 'demo' | 'live';
 
   findUserByUsername(username: string): Promise<AuthUser | null>;

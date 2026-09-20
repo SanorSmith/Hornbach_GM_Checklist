@@ -9,8 +9,10 @@ import { STORE_TIME_ZONE } from '@/lib/config';
 import { t } from '@/lib/i18n';
 import type { ControlStatus } from '@/lib/repo/types';
 import { businessDateOf } from '@/lib/rules/time';
+import { repository } from '@/lib/repo';
 import { buildSupervisorOverview, type ChecklistOverview } from '@/lib/supervisor/overview';
 import { formatDate } from '@/lib/utils';
+import { AssignPicker, type AssignableUser } from './assign-picker';
 import { ControlActions } from './control-actions';
 
 export const dynamic = 'force-dynamic';
@@ -46,6 +48,13 @@ export default async function SupervisorPage() {
   const businessDate = businessDateOf(new Date(), STORE_TIME_ZONE);
   const overview = await buildSupervisorOverview(businessDate, new Date());
 
+  // Only active accounts can be given work; a deactivated one would produce a
+  // list nobody can do, and the API refuses it anyway.
+  const assignable: AssignableUser[] = (await repository().listUsers())
+    .filter((u) => u.isActive)
+    .map((u) => ({ id: u.id, displayName: u.displayName }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, 'sv'));
+
   return (
     <>
       <DemoBanner />
@@ -65,6 +74,11 @@ export default async function SupervisorPage() {
             signed: overview.totals.signed,
           })}
         </p>
+        {overview.totals.unstartedButAssigned > 0 && (
+          <p className="mt-1 text-sm font-semibold">
+            {fill('assign.unstarted', { count: overview.totals.unstartedButAssigned })}
+          </p>
+        )}
         {overview.totals.awaitingControl > 0 && (
           <p className="mb-4 mt-1 text-sm font-semibold">
             {fill('control.awaiting', { count: overview.totals.awaitingControl })}
@@ -132,6 +146,12 @@ export default async function SupervisorPage() {
                           : t('gpl.nobodyStarted')}
                     </p>
 
+                    <p className="gm-muted mt-1 text-sm">
+                      {list.assignedTo
+                        ? `${t('assign.label')}: ${list.assignedTo.name}`
+                        : t('assign.notAssigned')}
+                    </p>
+
                     {reviewed && (
                       <p className="gm-muted mt-1 text-sm">
                         {t('control.by')} {list.control.by}
@@ -150,6 +170,16 @@ export default async function SupervisorPage() {
                         {t('gpl.open')}
                         <ChevronRight className="h-4 w-4" aria-hidden />
                       </Link>
+                    )}
+
+                    {/* Assignment stays editable after work starts: shifts change
+                        hands, and the record should follow. */}
+                    {list.status !== 'SIGNED' && (
+                      <AssignPicker
+                        templateCode={list.code}
+                        users={assignable}
+                        current={list.assignedTo?.id ?? null}
+                      />
                     )}
 
                     {awaitingControl && list.runId && <ControlActions runId={list.runId} />}
