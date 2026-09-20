@@ -294,6 +294,13 @@
            px-2 py-0.5 text-xs font-medium text-[hsl(var(--gm-fg-muted))];
   }
 
+  /* --- Print-only ---------------------------------------------------------
+     Content that belongs on paper and nowhere else — the photo names that
+     stand in for the photographs on a printed protokoll. */
+  .gm-print-only {
+    display: none;
+  }
+
   /* --- Screen-reader only ------------------------------------------------ */
   .gm-sr-only {
     @apply absolute h-px w-px overflow-hidden whitespace-nowrap border-0 p-0;
@@ -313,6 +320,13 @@
 @media print {
   .gm-no-print {
     display: none !important;
+  }
+
+  /* The paper substitutes for the photographs: printing fifteen photographs
+     turns a two-page record into a dozen. The names say which pictures exist
+     and how to find them; the originals stay in the system. */
+  .gm-print-only {
+    display: block !important;
   }
 
   html,
@@ -362,8 +376,9 @@
     page-break-after: avoid;
   }
 
+  /* The drawn signature, which does print — it is the mark on the record. */
   .gm-print-photo {
-    max-height: 30mm;
+    max-height: 20mm;
     width: auto;
   }
 
