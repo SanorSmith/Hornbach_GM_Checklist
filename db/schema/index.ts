@@ -14,5 +14,6 @@ export * from './stores';
 export * from './identity';
 export * from './runs';
 export * from './assignments';
+export * from './notifications';
 export * from './evidence';
 export * from './audit';

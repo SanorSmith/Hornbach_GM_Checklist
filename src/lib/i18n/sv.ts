@@ -126,6 +126,12 @@ export const sv = {
   'assign.notAssigned': 'Inte tilldelad någon',
   'assign.mine': 'Dina listor idag',
   'assign.doneBySomeoneElse': 'Genomförs av någon annan än den tilldelade',
+
+  'notif.title': 'Att åtgärda',
+  'notif.notStarted': '{list} är inte påbörjad',
+  'notif.notSigned': '{list} är inte signerad',
+  'notif.assignee': 'Tilldelad {name}',
+  'notif.dismiss': 'Uppfattat',
 } as const;
 
 export type MessageKey = keyof typeof sv;

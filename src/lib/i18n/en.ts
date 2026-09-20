@@ -127,4 +127,10 @@ export const en: Record<MessageKey, string> = {
   'assign.notAssigned': 'Not assigned to anyone',
   'assign.mine': 'Your lists today',
   'assign.doneBySomeoneElse': 'Being done by someone other than the assignee',
+
+  'notif.title': 'Needs attention',
+  'notif.notStarted': '{list} has not been started',
+  'notif.notSigned': '{list} has not been signed',
+  'notif.assignee': 'Assigned to {name}',
+  'notif.dismiss': 'Got it',
 };

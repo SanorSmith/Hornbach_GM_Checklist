@@ -3,6 +3,7 @@ import type { AuthUser, Role } from '@/lib/auth/types';
 import { getDb, schema } from '@/lib/db/client';
 import { postgresAssignmentRepository } from './postgres-assignments';
 import { postgresEvidenceRepository } from './postgres-evidence';
+import { postgresNotificationRepository } from './postgres-notifications';
 import { postgresRunRepository } from './postgres-runs';
 import { storeId } from './postgres-store';
 import type { Repository } from './types';
@@ -229,6 +230,10 @@ export function createPostgresRepository(): Repository {
     listAssignments: (...args) => postgresAssignmentRepository.listAssignments(...args),
     setAssignment: (...args) => postgresAssignmentRepository.setAssignment(...args),
     clearAssignment: (...args) => postgresAssignmentRepository.clearAssignment(...args),
+
+    createNotifications: (...args) => postgresNotificationRepository.createNotifications(...args),
+    listNotifications: (...args) => postgresNotificationRepository.listNotifications(...args),
+    ackNotification: (...args) => postgresNotificationRepository.ackNotification(...args),
 
     addAttachment: (...args) => postgresEvidenceRepository.addAttachment(...args),
     listAttachments: (...args) => postgresEvidenceRepository.listAttachments(...args),

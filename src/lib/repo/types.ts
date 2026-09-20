@@ -40,7 +40,42 @@ export interface AssignmentRepository {
   }): Promise<void>;
 }
 
-export interface Repository extends RunRepository, EvidenceRepository, AssignmentRepository {
+
+/* -------------------------------------------------------------------------- */
+/* Notifications                                                              */
+/* -------------------------------------------------------------------------- */
+
+export interface NotificationRecord {
+  id: string;
+  templateCode: string;
+  kind: string;
+  state: string;
+  payload: { listName?: string; dueAt?: string; assigneeName?: string | null } | null;
+  createdAt: string;
+}
+
+export interface NewNotification {
+  businessDate: string;
+  templateCode: string;
+  slot: number;
+  recipientId: string;
+  kind: string;
+  payload: unknown;
+}
+
+export interface NotificationRepository {
+  /**
+   * Records notifications, ignoring any the recipient already has.
+   *
+   * Returns how many were new, so a scheduled run can report what it actually
+   * told people rather than what it considered telling them.
+   */
+  createNotifications(items: readonly NewNotification[]): Promise<number>;
+  listNotifications(recipientId: string, businessDate: string): Promise<NotificationRecord[]>;
+  ackNotification(id: string, recipientId: string): Promise<void>;
+}
+
+export interface Repository extends RunRepository, EvidenceRepository, AssignmentRepository, NotificationRepository {
   readonly mode: 'demo' | 'live';
 
   findUserByUsername(username: string): Promise<AuthUser | null>;

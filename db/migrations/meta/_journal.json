@@ -50,6 +50,13 @@
       "when": 1789911244806,
       "tag": "0006_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789911934239,
+      "tag": "0007_notifications",
+      "breakpoints": true
     }
   ]
 }
