@@ -70,6 +70,7 @@ async function loadRun(runId: string): Promise<RunDetail | null> {
     displayName: s.displayName,
     signedAt: s.signedAt.toISOString(),
     signatureHash: s.signatureHash,
+    drawnSignature: s.drawnSignature,
   }));
 
   return {
@@ -233,6 +234,8 @@ export const postgresRunRepository: RunRepository = {
       displayName: input.displayName,
       contentHash: input.contentHash,
       signatureHash: input.signatureHash,
+      drawnSignature: input.drawnSignature ?? null,
+      drawnSignatureSha256: input.drawnSignatureSha256 ?? null,
       snapshot: input.snapshot as object,
     });
 

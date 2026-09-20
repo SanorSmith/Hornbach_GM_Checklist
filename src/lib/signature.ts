@@ -68,12 +68,31 @@ export function signatureHashOf(input: {
   username: string;
   signedAt: string;
   deviceLabel: string;
+  /**
+   * The hash of the name drawn on the glass, when there is one.
+   *
+   * Sealed in rather than stored beside, so the drawing cannot be swapped for
+   * someone else's afterwards without the signature hash ceasing to match. An
+   * empty string when nobody drew, which keeps the hash of a plain signature
+   * stable and distinguishable from one that had a drawing removed.
+   */
+  drawingHash?: string | null;
 }): string {
   return sha256(
-    [input.contentHash, input.username, input.signedAt, input.deviceLabel, signaturePepper()].join(
-      '|',
-    ),
+    [
+      input.contentHash,
+      input.username,
+      input.signedAt,
+      input.deviceLabel,
+      input.drawingHash ?? '',
+      signaturePepper(),
+    ].join('|'),
   );
+}
+
+/** The drawing's own hash, over the raw base64 exactly as it is stored. */
+export function drawingHashOf(base64Png: string): string {
+  return sha256(base64Png);
 }
 
 /** `Erik Andersson (erik) · 2026-09-19 19:42 · a3f9…c21` */

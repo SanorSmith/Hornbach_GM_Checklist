@@ -176,9 +176,20 @@ export default async function RecordPage({ params }: { params: Promise<{ runId: 
           {record.signatures.length === 0 ? (
             <p className="gm-muted mt-1 text-sm">{t('prot.noSignatures')}</p>
           ) : (
-            <ul className="mt-2 space-y-1 text-sm">
+            <ul className="mt-2 space-y-3 text-sm">
               {record.signatures.map((signature) => (
                 <li key={`${signature.slot}-${signature.username}`}>
+                  {/* The written name sits above the line, as it did on the
+                      sheet. It is the human-readable face of the signature;
+                      the hash underneath is what actually proves it. */}
+                  {signature.drawnSignature && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`data:image/png;base64,${signature.drawnSignature}`}
+                      alt={`Namnteckning, ${signature.displayName}`}
+                      className="gm-print-photo mb-1 h-16 w-auto max-w-[16rem] border-b border-[hsl(var(--gm-border))]"
+                    />
+                  )}
                   <span className="font-semibold">{signature.displayName}</span>
                   <span className="gm-muted"> ({signature.username})</span>
                   {signature.slotLabelSv && (

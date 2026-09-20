@@ -156,6 +156,17 @@ export const signatures = pgTable(
     contentHash: text('content_hash').notNull(),
     signatureHash: text('signature_hash').notNull(),
     snapshot: jsonb('snapshot').notNull(),
+    /**
+     * The name written with a finger, as base64 PNG — what the worker actually
+     * drew on the glass, which is the mark the paper form carried.
+     *
+     * Nullable: it is the human-readable face of the signature, not the proof.
+     * The proof is `signatureHash`, which covers `drawnSignatureSha256`, so a
+     * drawing cannot be swapped for someone else's after the fact — and a
+     * signature without one is still a valid signature.
+     */
+    drawnSignature: text('drawn_signature'),
+    drawnSignatureSha256: text('drawn_signature_sha256'),
   },
   (t) => [uniqueIndex('signature_unique').on(t.runId, t.slot, t.purpose)],
 );

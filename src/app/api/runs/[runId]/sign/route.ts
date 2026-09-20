@@ -6,13 +6,31 @@ import { STORE_TIME_ZONE } from '@/lib/config';
 import { repository } from '@/lib/repo';
 import { evaluateRun } from '@/lib/rules';
 import { toEngineItems } from '@/lib/runs/engine-input';
-import { buildSnapshot, contentHashOf, signatureHashOf } from '@/lib/signature';
+import { buildSnapshot, contentHashOf, drawingHashOf, signatureHashOf } from '@/lib/signature';
 import { zonedToInstant } from '@/lib/rules/time';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const Body = z.object({ slot: z.number().int().min(1).max(2).default(1) });
+/**
+ * `drawing` is the name written on the glass: base64 PNG, no data-URL prefix.
+ *
+ * Capped at 512 KB of base64. A finger-drawn name is a few kilobytes; anything
+ * approaching the cap is not a signature, and the column is not an image
+ * store. Optional throughout — a signature without a drawing is still a
+ * signature, and nobody should be unable to finish a shift because a
+ * touchscreen would not cooperate.
+ */
+const DRAWING_MAX_BASE64 = 512 * 1024;
+
+const Body = z.object({
+  slot: z.number().int().min(1).max(2).default(1),
+  drawing: z
+    .string()
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/, 'Namnteckningen kunde inte läsas.')
+    .max(DRAWING_MAX_BASE64, 'Namnteckningen är för stor.')
+    .nullish(),
+});
 
 /**
  * Signs a run.
@@ -30,7 +48,14 @@ export async function POST(
     const session = await requireUser();
     const { runId } = await params;
     const parsed = Body.safeParse(await request.json().catch(() => ({})));
-    const slot = parsed.success ? parsed.data.slot : 1;
+    if (!parsed.success) {
+      return NextResponse.json(
+        { ok: false, error: parsed.error.issues[0]?.message ?? 'Ogiltig begäran.' },
+        { status: 400 },
+      );
+    }
+    const { slot } = parsed.data;
+    const drawing = parsed.data.drawing ?? null;
 
     const repo = repository();
     const run = await repo.getRun(runId);
@@ -74,6 +99,10 @@ export async function POST(
     const contentHash = contentHashOf(snapshot);
     const deviceLabel = request.headers.get('user-agent')?.slice(0, 120) ?? 'okänd enhet';
 
+    // Sealed into the signature hash rather than stored beside it, so the
+    // drawing cannot later be swapped for somebody else's.
+    const drawingHash = drawing ? drawingHashOf(drawing) : null;
+
     await repo.signRun(runId, {
       slot,
       userId: session.userId,
@@ -85,8 +114,11 @@ export async function POST(
         username: session.username,
         signedAt,
         deviceLabel,
+        drawingHash,
       }),
       snapshot,
+      drawnSignature: drawing,
+      drawnSignatureSha256: drawingHash,
     });
 
     await repo.appendAudit({
@@ -94,7 +126,7 @@ export async function POST(
       actorUsername: session.username,
       action: 'run.sign',
       entityType: 'run',
-      after: { runId, contentHash, slot },
+      after: { runId, contentHash, slot, drawnSignature: drawingHash !== null },
     });
 
     return NextResponse.json({ ok: true, contentHash });
