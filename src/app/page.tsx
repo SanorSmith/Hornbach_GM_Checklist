@@ -5,6 +5,7 @@ import { Card, CardBody, CardTitle } from '@/components/ui/card';
 import { IdleGuard } from '@/components/auth/idle-guard';
 import { DemoBanner } from '@/components/layout/demo-banner';
 import { NotificationBanner } from '@/components/layout/notification-banner';
+import { PushToggle } from '@/components/layout/push-toggle';
 import { Topbar } from '@/components/layout/topbar';
 import { requireUserOrRedirect } from '@/lib/auth/guard';
 import { CHECKLIST_CATALOGUE, SHIFT_MESSAGE_KEY } from '@/lib/checklists';
@@ -53,6 +54,12 @@ export default async function HomePage() {
       />
 
       <NotificationBanner items={notifications} />
+
+      {process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && (
+        <div className="gm-shell pt-4">
+          <PushToggle vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
+        </div>
+      )}
 
       <main className="gm-shell py-6">
         <h1 className="gm-section-title mb-4">{t('worker.pickList')}</h1>

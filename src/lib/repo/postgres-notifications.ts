@@ -5,7 +5,7 @@ import type { NotificationRepository } from './types';
 
 export const postgresNotificationRepository: NotificationRepository = {
   async createNotifications(items) {
-    if (items.length === 0) return 0;
+    if (items.length === 0) return [];
     const db = getDb();
     const store = await storeId();
 
@@ -26,9 +26,14 @@ export const postgresNotificationRepository: NotificationRepository = {
         })),
       )
       .onConflictDoNothing()
-      .returning({ id: schema.notifications.id });
+      .returning({
+        templateCode: schema.notifications.templateCode,
+        slot: schema.notifications.slot,
+        recipientId: schema.notifications.recipientId,
+        kind: schema.notifications.kind,
+      });
 
-    return inserted.length;
+    return inserted;
   },
 
   async listNotifications(recipientId, businessDate) {

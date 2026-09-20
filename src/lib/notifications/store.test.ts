@@ -25,16 +25,17 @@ const item = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe('createNotifications', () => {
-  it('creates what it is given', async () => {
+  it('returns what it actually created, so only those get pushed', async () => {
     const created = await repository().createNotifications([item()]);
-    expect(created).toBe(1);
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({ templateCode: 'GM_LF_KVALL', recipientId: 'anna' });
   });
 
   it('tells the same person the same thing only once', async () => {
     await repository().createNotifications([item()]);
     const second = await repository().createNotifications([item()]);
 
-    expect(second).toBe(0);
+    expect(second).toHaveLength(0);
     expect(await repository().listNotifications('anna', DATE)).toHaveLength(1);
   });
 
@@ -42,7 +43,7 @@ describe('createNotifications', () => {
     await repository().createNotifications([item()]);
     const created = await repository().createNotifications([item({ recipientId: 'erik' })]);
 
-    expect(created).toBe(1);
+    expect(created).toHaveLength(1);
   });
 
   it('treats a different kind as a different thing worth saying', async () => {
@@ -51,7 +52,7 @@ describe('createNotifications', () => {
       item({ kind: 'NOT_SIGNED_BY_END' }),
     ]);
 
-    expect(created).toBe(1);
+    expect(created).toHaveLength(1);
     expect(await repository().listNotifications('anna', DATE)).toHaveLength(2);
   });
 
@@ -61,7 +62,7 @@ describe('createNotifications', () => {
       item({ businessDate: '2026-09-21' }),
     ]);
 
-    expect(created).toBe(1);
+    expect(created).toHaveLength(1);
     expect(await repository().listNotifications('anna', DATE)).toHaveLength(1);
   });
 });

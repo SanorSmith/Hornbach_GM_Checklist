@@ -5,6 +5,7 @@ import { repository } from '@/lib/repo';
 import { zonedToInstant } from '@/lib/rules/time';
 import type { ChecklistOverview } from '@/lib/supervisor/overview';
 import { detectOverdue, NOT_STARTED_GRACE_MINUTES, type ChecklistTiming } from './detect';
+import { sendPushes } from './push';
 
 /**
  * Turns "what is late" into rows for the people who should know.
@@ -53,6 +54,7 @@ export interface RaiseResult {
   checked: number;
   matched: number;
   created: number;
+  pushed: number;
 }
 
 export async function raiseOverdueNotifications(input: {
@@ -88,5 +90,24 @@ export async function raiseOverdueNotifications(input: {
     pending.map((p) => ({ ...p, businessDate })),
   );
 
-  return { checked: timings.length, matched: pending.length, created };
+  // Push only what was genuinely new. This runs on every supervisor page load,
+  // so pushing everything it considered would notify the same person about the
+  // same list all afternoon.
+  const createdKeys = new Set(
+    created.map((c) => `${c.templateCode}|${c.slot}|${c.recipientId}|${c.kind}`),
+  );
+  const fresh = pending.filter((p) =>
+    createdKeys.has(`${p.templateCode}|${p.slot}|${p.recipientId}|${p.kind}`),
+  );
+
+  // Best-effort: a dead subscription or a push service outage must not fail the
+  // notification row, which is the channel people can actually rely on.
+  let pushed = 0;
+  try {
+    pushed = (await sendPushes(fresh)).sent;
+  } catch {
+    pushed = 0;
+  }
+
+  return { checked: timings.length, matched: pending.length, created: created.length, pushed };
 }

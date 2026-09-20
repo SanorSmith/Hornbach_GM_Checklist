@@ -337,3 +337,19 @@ ALTER TABLE "notifications" ADD CONSTRAINT "notifications_store_id_stores_id_fk"
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_recipient_id_users_id_fk" FOREIGN KEY ("recipient_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 CREATE UNIQUE INDEX "notification_dedupe" ON "notifications" USING btree ("store_id","business_date","template_code","slot","recipient_id","kind");
 CREATE INDEX "notifications_for_recipient" ON "notifications" USING btree ("recipient_id","state");
+
+-- ===== db/migrations/0008_push_subscriptions.sql =====
+CREATE TABLE "push_subscriptions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" uuid NOT NULL,
+	"endpoint" text NOT NULL,
+	"p256dh" text NOT NULL,
+	"auth" text NOT NULL,
+	"device_label" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"last_used_at" timestamp with time zone
+);
+
+ALTER TABLE "push_subscriptions" ADD CONSTRAINT "push_subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+CREATE UNIQUE INDEX "push_subscription_endpoint" ON "push_subscriptions" USING btree ("endpoint");
+CREATE INDEX "push_subscriptions_by_user" ON "push_subscriptions" USING btree ("user_id");

@@ -63,19 +63,55 @@ export interface NewNotification {
   payload: unknown;
 }
 
+/** Enough to match a created row back to the item that produced it. */
+export interface CreatedNotificationKey {
+  templateCode: string;
+  slot: number;
+  recipientId: string;
+  kind: string;
+}
+
 export interface NotificationRepository {
   /**
    * Records notifications, ignoring any the recipient already has.
    *
-   * Returns how many were new, so a scheduled run can report what it actually
-   * told people rather than what it considered telling them.
+   * Returns the ones that were actually new. Callers push only those — the
+   * check runs on every supervisor page load, and pushing everything it
+   * considered would notify the same person the same thing all afternoon.
    */
-  createNotifications(items: readonly NewNotification[]): Promise<number>;
+  createNotifications(items: readonly NewNotification[]): Promise<CreatedNotificationKey[]>;
   listNotifications(recipientId: string, businessDate: string): Promise<NotificationRecord[]>;
   ackNotification(id: string, recipientId: string): Promise<void>;
 }
 
-export interface Repository extends RunRepository, EvidenceRepository, AssignmentRepository, NotificationRepository {
+
+/* -------------------------------------------------------------------------- */
+/* Push subscriptions                                                         */
+/* -------------------------------------------------------------------------- */
+
+export interface PushSubscriptionRecord {
+  id: string;
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
+export interface PushRepository {
+  /** Upserts on endpoint: re-subscribing a browser refreshes its keys. */
+  savePushSubscription(input: {
+    userId: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    deviceLabel: string | null;
+  }): Promise<void>;
+  listPushSubscriptions(userIds: readonly string[]): Promise<PushSubscriptionRecord[]>;
+  /** Called when the push service reports the endpoint is gone. */
+  deletePushSubscription(endpoint: string): Promise<void>;
+}
+
+export interface Repository extends RunRepository, EvidenceRepository, AssignmentRepository, NotificationRepository, PushRepository {
   readonly mode: 'demo' | 'live';
 
   findUserByUsername(username: string): Promise<AuthUser | null>;

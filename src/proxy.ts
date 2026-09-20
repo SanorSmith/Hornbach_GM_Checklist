@@ -34,6 +34,10 @@ export const config = {
   matcher: [
     // Pages only. API routes, static assets and image optimisation are excluded
     // here because they are authorized (or public) by their own handlers.
-    '/((?!api|_next/static|_next/image|favicon.ico|icons|sounds|manifest.webmanifest).*)',
+    //
+    // sw.js has to be reachable without a session: the browser re-fetches it to
+    // check for updates, and a redirect to /login there silently breaks push
+    // registration rather than failing loudly.
+    '/((?!api|_next/static|_next/image|favicon.ico|icons|sounds|manifest.webmanifest|sw.js).*)',
   ],
 };

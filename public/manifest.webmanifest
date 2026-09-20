@@ -1,0 +1,12 @@
+{
+  "name": "GM Checklista",
+  "short_name": "GM Checklista",
+  "description": "Digitala checklistor för Godsmottagningen",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "sv-SE",
+  "background_color": "#f4f4f5",
+  "theme_color": "#f4f4f5"
+}

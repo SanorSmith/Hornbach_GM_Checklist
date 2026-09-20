@@ -132,6 +132,13 @@ export const sv = {
   'notif.notSigned': '{list} är inte signerad',
   'notif.assignee': 'Tilldelad {name}',
   'notif.dismiss': 'Uppfattat',
+
+  'push.enable': 'Slå på notiser',
+  'push.turnOff': 'Stäng av notiser',
+  'push.working': 'Ett ögonblick…',
+  'push.denied': 'Notiser är blockerade i webbläsaren',
+  'push.unsupported': 'Den här enheten stöder inte notiser',
+  'push.failed': 'Kunde inte slå på notiser.',
 } as const;
 
 export type MessageKey = keyof typeof sv;

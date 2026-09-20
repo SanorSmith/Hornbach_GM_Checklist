@@ -206,6 +206,10 @@ export function createMemoryRepository(): Repository {
     listNotifications: (...args) => memoryNotificationRepository.listNotifications(...args),
     ackNotification: (...args) => memoryNotificationRepository.ackNotification(...args),
 
+    savePushSubscription: (...args) => memoryPushRepository.savePushSubscription(...args),
+    listPushSubscriptions: (...args) => memoryPushRepository.listPushSubscriptions(...args),
+    deletePushSubscription: (...args) => memoryPushRepository.deletePushSubscription(...args),
+
     addAttachment: (...args) => memoryEvidenceRepository.addAttachment(...args),
     listAttachments: (...args) => memoryEvidenceRepository.listAttachments(...args),
     readAttachment: (...args) => memoryEvidenceRepository.readAttachment(...args),
@@ -226,7 +230,61 @@ export function __resetMemoryRepositoryForTests(): void {
   delete (globalThis as { __gmPhotos?: unknown }).__gmPhotos;
   delete (globalThis as { __gmAssignments?: unknown }).__gmAssignments;
   delete (globalThis as { __gmNotifs?: unknown }).__gmNotifs;
+  delete (globalThis as { __gmPush?: unknown }).__gmPush;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Push subscriptions (demo mode)                                             */
+/* -------------------------------------------------------------------------- */
+
+interface StoredPushSubscription {
+  id: string;
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
+const globalForPush = globalThis as unknown as { __gmPush?: StoredPushSubscription[] };
+
+function pushStore(): StoredPushSubscription[] {
+  globalForPush.__gmPush ??= [];
+  return globalForPush.__gmPush;
+}
+
+export const memoryPushRepository = {
+  async savePushSubscription(input: {
+    userId: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    deviceLabel: string | null;
+  }) {
+    const store = pushStore();
+    // Mirrors the unique index on endpoint.
+    const existing = store.findIndex((p) => p.endpoint === input.endpoint);
+    const record: StoredPushSubscription = {
+      id: existing >= 0 ? store[existing]!.id : randomUUID(),
+      userId: input.userId,
+      endpoint: input.endpoint,
+      p256dh: input.p256dh,
+      auth: input.auth,
+    };
+    if (existing >= 0) store[existing] = record;
+    else store.push(record);
+  },
+
+  async listPushSubscriptions(userIds: readonly string[]) {
+    const wanted = new Set(userIds);
+    return pushStore().filter((p) => wanted.has(p.userId));
+  },
+
+  async deletePushSubscription(endpoint: string) {
+    const store = pushStore();
+    const at = store.findIndex((p) => p.endpoint === endpoint);
+    if (at >= 0) store.splice(at, 1);
+  },
+};
 
 /* -------------------------------------------------------------------------- */
 /* Notifications (demo mode)                                                  */
@@ -261,7 +319,7 @@ export const memoryNotificationRepository = {
     payload: unknown;
   }[]) {
     const store = notificationStore();
-    let created = 0;
+    const created: { templateCode: string; slot: number; recipientId: string; kind: string }[] = [];
     for (const item of items) {
       // Mirrors the unique index, so the demo mode dedupes exactly as Postgres
       // does and a repeated check does not pile up duplicates.
@@ -280,7 +338,12 @@ export const memoryNotificationRepository = {
         state: 'SCHEDULED',
         createdAt: new Date().toISOString(),
       });
-      created += 1;
+      created.push({
+        templateCode: item.templateCode,
+        slot: item.slot,
+        recipientId: item.recipientId,
+        kind: item.kind,
+      });
     }
     return created;
   },
