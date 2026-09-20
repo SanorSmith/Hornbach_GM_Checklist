@@ -13,7 +13,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { answerValue, fieldType, itemStatus, runStatus, shiftCode } from './enums';
+import { answerValue, controlStatus, fieldType, itemStatus, runStatus, shiftCode } from './enums';
 import { users } from './identity';
 import { stores } from './stores';
 
@@ -43,6 +43,21 @@ export const checklistRuns = pgTable(
     openedAt: timestamp('opened_at', { withTimezone: true }).notNull().defaultNow(),
     submittedAt: timestamp('submitted_at', { withTimezone: true }),
     createdBy: uuid('created_by').references(() => users.id),
+
+    /**
+     * Efterkontroll — the group leader's review of a finished list.
+     *
+     * PENDING until someone reviews it, so "submitted but nobody has checked
+     * it" is a state the system can see rather than an absence. The reviewer's
+     * signature is a row in `signatures` with purpose 'LEADER_CONTROL'; these
+     * columns are the verdict, kept on the run so it can be filtered and
+     * counted without joining.
+     */
+    controlStatus: controlStatus('control_status').notNull().default('PENDING'),
+    controlledBy: uuid('controlled_by').references(() => users.id),
+    controlledAt: timestamp('controlled_at', { withTimezone: true }),
+    /** Why, when the verdict is not OK. Required by the API in that case. */
+    controlNote: text('control_note'),
   },
   (t) => [
     // One run per list per day per shift — two people opening the morning list

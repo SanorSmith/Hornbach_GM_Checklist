@@ -222,6 +222,7 @@ export function createPostgresRepository(): Repository {
     getRun: (...args) => postgresRunRepository.getRun(...args),
     saveAnswer: (...args) => postgresRunRepository.saveAnswer(...args),
     signRun: (...args) => postgresRunRepository.signRun(...args),
+    controlRun: (...args) => postgresRunRepository.controlRun(...args),
     listRunsForDate: (...args) => postgresRunRepository.listRunsForDate(...args),
 
     addAttachment: (...args) => postgresEvidenceRepository.addAttachment(...args),

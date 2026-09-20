@@ -107,4 +107,15 @@ export const en: Record<MessageKey, string> = {
   'gpl.open': 'Open the list',
   'gpl.allDone': 'Every list is signed.',
   'gpl.summary': '{notStarted} not started · {inProgress} in progress · {signed} signed',
+
+  'control.title': 'After-control',
+  'control.pending': 'Awaiting after-control',
+  'control.ok': 'Approved',
+  'control.notOk': 'Deviation',
+  'control.followUp': 'Follow up',
+  'control.by': 'Reviewed by',
+  'control.notePlaceholder': 'What is wrong, or what needs following up?',
+  'control.noteRequired': 'Write what is wrong or needs following up.',
+  'control.saving': 'Saving…',
+  'control.awaiting': '{count} awaiting after-control',
 };

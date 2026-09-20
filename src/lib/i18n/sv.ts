@@ -106,6 +106,17 @@ export const sv = {
   'gpl.open': 'Öppna listan',
   'gpl.allDone': 'Alla listor är signerade.',
   'gpl.summary': '{notStarted} ej påbörjade · {inProgress} pågår · {signed} signerade',
+
+  'control.title': 'Efterkontroll',
+  'control.pending': 'Väntar på efterkontroll',
+  'control.ok': 'Godkänd',
+  'control.notOk': 'Avvikelse',
+  'control.followUp': 'Uppföljning',
+  'control.by': 'Kontrollerad av',
+  'control.notePlaceholder': 'Vad är fel eller ska följas upp?',
+  'control.noteRequired': 'Skriv vad som är fel eller ska följas upp.',
+  'control.saving': 'Sparar…',
+  'control.awaiting': '{count} väntar på efterkontroll',
 } as const;
 
 export type MessageKey = keyof typeof sv;

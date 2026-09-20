@@ -195,6 +195,7 @@ export function createMemoryRepository(): Repository {
     getRun: (...args) => memoryRunRepository.getRun(...args),
     saveAnswer: (...args) => memoryRunRepository.saveAnswer(...args),
     signRun: (...args) => memoryRunRepository.signRun(...args),
+    controlRun: (...args) => memoryRunRepository.controlRun(...args),
     listRunsForDate: (...args) => memoryRunRepository.listRunsForDate(...args),
 
     addAttachment: (...args) => memoryEvidenceRepository.addAttachment(...args),
@@ -253,6 +254,7 @@ export const memoryRunRepository: RunRepository = {
       createdBy: userId,
       items: [],
       signatures: [],
+      control: { status: 'PENDING', by: null, at: null, note: null },
     };
     runs.set(run.id, run);
     return run;
@@ -288,18 +290,43 @@ export const memoryRunRepository: RunRepository = {
   async signRun(runId, input) {
     const run = runStore().runs.get(runId);
     if (!run) throw new Error(`No such run: ${runId}`);
-    if (run.signatures.some((s) => s.slot === input.slot)) {
+    // Mirrors the unique index on (run, slot, purpose). Keyed on slot alone,
+    // a leader's control signature would collide with the worker's.
+    if (run.signatures.some((s) => s.slot === input.slot && s.purpose === 'WORKER_SUBMIT')) {
       throw new Error('Listan är redan signerad för den här platsen.');
     }
 
     run.signatures.push({
       slot: input.slot,
+      purpose: 'WORKER_SUBMIT',
       username: input.username,
       displayName: input.displayName,
       signedAt: new Date().toISOString(),
       signatureHash: input.signatureHash,
     });
     run.status = 'SUBMITTED';
+  },
+
+  async controlRun(runId, input) {
+    const run = runStore().runs.get(runId);
+    if (!run) throw new Error(`No such run: ${runId}`);
+    if (run.status !== 'SUBMITTED') {
+      throw new Error('Listan är inte inlämnad än.');
+    }
+    if (run.signatures.some((s) => s.purpose === 'LEADER_CONTROL')) {
+      throw new Error('Listan är redan efterkontrollerad.');
+    }
+
+    const at = new Date().toISOString();
+    run.signatures.push({
+      slot: 1,
+      purpose: 'LEADER_CONTROL',
+      username: input.username,
+      displayName: input.displayName,
+      signedAt: at,
+      signatureHash: input.signatureHash,
+    });
+    run.control = { status: input.status, by: input.displayName, at, note: input.note };
   },
 
   async listRunsForDate(businessDate) {

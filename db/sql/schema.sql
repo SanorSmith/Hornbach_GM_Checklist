@@ -291,3 +291,10 @@ CREATE TRIGGER audit_log_immutable
   BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW EXECUTE FUNCTION gm_audit_immutable();
 
+
+-- ===== db/migrations/0005_after_control.sql =====
+ALTER TABLE "checklist_runs" ADD COLUMN "control_status" "control_status" DEFAULT 'PENDING' NOT NULL;
+ALTER TABLE "checklist_runs" ADD COLUMN "controlled_by" uuid;
+ALTER TABLE "checklist_runs" ADD COLUMN "controlled_at" timestamp with time zone;
+ALTER TABLE "checklist_runs" ADD COLUMN "control_note" text;
+ALTER TABLE "checklist_runs" ADD CONSTRAINT "checklist_runs_controlled_by_users_id_fk" FOREIGN KEY ("controlled_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
