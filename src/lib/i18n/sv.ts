@@ -139,6 +139,9 @@ export const sv = {
   'push.denied': 'Notiser är blockerade i webbläsaren',
   'push.unsupported': 'Den här enheten stöder inte notiser',
   'push.failed': 'Kunde inte slå på notiser.',
+
+  'push.test': 'Skicka testnotis',
+  'push.testSent': 'Testnotis skickad till {count} enhet(er).',
 } as const;
 
 export type MessageKey = keyof typeof sv;
