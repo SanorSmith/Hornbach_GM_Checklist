@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardBody, CardTitle } from '@/components/ui/card';
 import { DemoBanner } from '@/components/layout/demo-banner';
+import { NotificationBanner } from '@/components/layout/notification-banner';
 import { Topbar } from '@/components/layout/topbar';
 import { requireLeaderOrRedirect } from '@/lib/auth/guard';
 import { STORE_TIME_ZONE } from '@/lib/config';
@@ -50,6 +51,8 @@ export default async function SupervisorPage() {
 
   // Only active accounts can be given work; a deactivated one would produce a
   // list nobody can do, and the API refuses it anyway.
+  const notifications = await repository().listNotifications(session.userId, businessDate);
+
   const assignable: AssignableUser[] = (await repository().listUsers())
     .filter((u) => u.isActive)
     .map((u) => ({ id: u.id, displayName: u.displayName }))
@@ -63,6 +66,8 @@ export default async function SupervisorPage() {
         username={session.username}
         roles={session.roles}
       />
+
+      <NotificationBanner items={notifications} />
 
       <main className="gm-shell py-6">
         <h1 className="gm-section-title">{t('gpl.title')}</h1>

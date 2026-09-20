@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardBody, CardTitle } from '@/components/ui/card';
 import { IdleGuard } from '@/components/auth/idle-guard';
 import { DemoBanner } from '@/components/layout/demo-banner';
+import { NotificationBanner } from '@/components/layout/notification-banner';
 import { Topbar } from '@/components/layout/topbar';
 import { requireUserOrRedirect } from '@/lib/auth/guard';
 import { CHECKLIST_CATALOGUE, SHIFT_MESSAGE_KEY } from '@/lib/checklists';
@@ -28,6 +29,7 @@ export default async function HomePage() {
   // everyone otherwise.
   const businessDate = businessDateOf(new Date(), STORE_TIME_ZONE);
   const assignments = await repository().listAssignments(businessDate);
+  const notifications = await repository().listNotifications(session.userId, businessDate);
   const mine = new Set(
     assignments.filter((a) => a.assignedTo === session.userId).map((a) => a.templateCode),
   );
@@ -49,6 +51,8 @@ export default async function HomePage() {
         username={session.username}
         roles={session.roles}
       />
+
+      <NotificationBanner items={notifications} />
 
       <main className="gm-shell py-6">
         <h1 className="gm-section-title mb-4">{t('worker.pickList')}</h1>

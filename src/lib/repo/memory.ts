@@ -202,6 +202,10 @@ export function createMemoryRepository(): Repository {
     setAssignment: (...args) => memoryAssignmentRepository.setAssignment(...args),
     clearAssignment: (...args) => memoryAssignmentRepository.clearAssignment(...args),
 
+    createNotifications: (...args) => memoryNotificationRepository.createNotifications(...args),
+    listNotifications: (...args) => memoryNotificationRepository.listNotifications(...args),
+    ackNotification: (...args) => memoryNotificationRepository.ackNotification(...args),
+
     addAttachment: (...args) => memoryEvidenceRepository.addAttachment(...args),
     listAttachments: (...args) => memoryEvidenceRepository.listAttachments(...args),
     readAttachment: (...args) => memoryEvidenceRepository.readAttachment(...args),
@@ -221,7 +225,89 @@ export function __resetMemoryRepositoryForTests(): void {
   // attachments leaking between tests.
   delete (globalThis as { __gmPhotos?: unknown }).__gmPhotos;
   delete (globalThis as { __gmAssignments?: unknown }).__gmAssignments;
+  delete (globalThis as { __gmNotifs?: unknown }).__gmNotifs;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Notifications (demo mode)                                                  */
+/* -------------------------------------------------------------------------- */
+
+interface StoredNotification {
+  id: string;
+  businessDate: string;
+  templateCode: string;
+  slot: number;
+  recipientId: string;
+  kind: string;
+  state: string;
+  payload: unknown;
+  createdAt: string;
+}
+
+const globalForNotifications = globalThis as unknown as { __gmNotifs?: StoredNotification[] };
+
+function notificationStore(): StoredNotification[] {
+  globalForNotifications.__gmNotifs ??= [];
+  return globalForNotifications.__gmNotifs;
+}
+
+export const memoryNotificationRepository = {
+  async createNotifications(items: readonly {
+    businessDate: string;
+    templateCode: string;
+    slot: number;
+    recipientId: string;
+    kind: string;
+    payload: unknown;
+  }[]) {
+    const store = notificationStore();
+    let created = 0;
+    for (const item of items) {
+      // Mirrors the unique index, so the demo mode dedupes exactly as Postgres
+      // does and a repeated check does not pile up duplicates.
+      const exists = store.some(
+        (n) =>
+          n.businessDate === item.businessDate &&
+          n.templateCode === item.templateCode &&
+          n.slot === item.slot &&
+          n.recipientId === item.recipientId &&
+          n.kind === item.kind,
+      );
+      if (exists) continue;
+      store.push({
+        id: randomUUID(),
+        ...item,
+        state: 'SCHEDULED',
+        createdAt: new Date().toISOString(),
+      });
+      created += 1;
+    }
+    return created;
+  },
+
+  async listNotifications(recipientId: string, businessDate: string) {
+    return notificationStore()
+      .filter(
+        (n) =>
+          n.recipientId === recipientId &&
+          n.businessDate === businessDate &&
+          n.state === 'SCHEDULED',
+      )
+      .map((n) => ({
+        id: n.id,
+        templateCode: n.templateCode,
+        kind: n.kind,
+        state: n.state,
+        payload: n.payload as { listName?: string; dueAt?: string; assigneeName?: string | null },
+        createdAt: n.createdAt,
+      }));
+  },
+
+  async ackNotification(id: string, recipientId: string) {
+    const found = notificationStore().find((n) => n.id === id && n.recipientId === recipientId);
+    if (found) found.state = 'ACKED';
+  },
+};
 
 /* -------------------------------------------------------------------------- */
 /* Assignments (demo mode)                                                    */
