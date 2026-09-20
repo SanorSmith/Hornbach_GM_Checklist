@@ -36,6 +36,7 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
 export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string }) {
   const [state, setState] = useState<State>('checking');
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +101,25 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string }) {
     }
   }
 
+  async function sendTest() {
+    setError(null);
+    setNote(null);
+    try {
+      const response = await fetch('/api/push/test', { method: 'POST' });
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        sent?: number;
+      };
+      if (!response.ok) {
+        setError(body.error ?? t('push.failed'));
+        return;
+      }
+      setNote(t('push.testSent').replace('{count}', String(body.sent ?? 0)));
+    } catch {
+      setError(t('push.failed'));
+    }
+  }
+
   async function disable() {
     setState('working');
     try {
@@ -147,6 +167,20 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string }) {
           ? t('push.working')
           : t(state === 'on' ? 'push.turnOff' : 'push.enable')}
       </Button>
+      {/* Only once it is on: confirming delivery is the question every new
+          handheld raises, and waiting for a list to go late is a poor answer. */}
+      {state === 'on' && (
+        <Button
+          variant="ghost"
+          size="compact"
+          className="ml-2"
+          onClick={() => void sendTest()}
+        >
+          {t('push.test')}
+        </Button>
+      )}
+
+      {note && <p className="gm-muted mt-1 text-sm">{note}</p>}
       {error && <p className="mt-1 text-sm text-[hsl(var(--gm-danger))]">{error}</p>}
     </div>
   );

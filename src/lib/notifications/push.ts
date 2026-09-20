@@ -106,3 +106,47 @@ export async function sendPushes(items: readonly PendingNotification[]): Promise
 
   return result;
 }
+
+/**
+ * Sends a push to the caller's own devices, so someone can confirm the chain
+ * works without contriving an overdue checklist.
+ *
+ * Worth having permanently: "did permission actually stick on this handheld"
+ * is a question every new device raises, and the honest answer is only visible
+ * by making one arrive.
+ */
+export async function sendTestPush(userId: string): Promise<PushResult> {
+  const result: PushResult = { sent: 0, failed: 0, pruned: 0 };
+  if (!configure()) return result;
+
+  const repo = repository();
+  const subscriptions = await repo.listPushSubscriptions([userId]);
+
+  await Promise.all(
+    subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          JSON.stringify({
+            title: TITLE,
+            body: 'Testnotis — så här ser en påminnelse ut.',
+            tag: 'gm-test',
+            url: '/',
+          }),
+          { TTL: 60 },
+        );
+        result.sent += 1;
+      } catch (error) {
+        const status = (error as { statusCode?: number }).statusCode;
+        if (status === 404 || status === 410) {
+          await repo.deletePushSubscription(sub.endpoint);
+          result.pruned += 1;
+        } else {
+          result.failed += 1;
+        }
+      }
+    }),
+  );
+
+  return result;
+}

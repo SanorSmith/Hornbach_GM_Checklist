@@ -140,4 +140,7 @@ export const en: Record<MessageKey, string> = {
   'push.denied': 'Notifications are blocked in the browser',
   'push.unsupported': 'This device does not support notifications',
   'push.failed': 'Could not turn notifications on.',
+
+  'push.test': 'Send a test notification',
+  'push.testSent': 'Test notification sent to {count} device(s).',
 };
