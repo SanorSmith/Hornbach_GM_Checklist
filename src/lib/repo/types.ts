@@ -15,6 +15,26 @@ export interface Repository extends RunRepository, EvidenceRepository {
   findUserById(id: string): Promise<AuthUser | null>;
   listUsers(): Promise<AuthUser[]>;
 
+  /**
+   * Creates a staff account. The PIN arrives already hashed — plain PINs never
+   * reach the repository, so they cannot be logged or stored by accident.
+   */
+  createUser(input: {
+    username: string;
+    displayName: string;
+    roles: Role[];
+    pinHash: string;
+  }): Promise<AuthUser>;
+
+  /** Replaces the user's role grants with exactly this set. */
+  setUserRoles(userId: string, roles: Role[]): Promise<void>;
+
+  /** Deactivating keeps the account and its signatures; it only blocks sign-in. */
+  setUserActive(userId: string, isActive: boolean): Promise<void>;
+
+  /** Issues a new PIN and clears any lockout from the old one. */
+  setUserPin(userId: string, pinHash: string): Promise<void>;
+
   /** Returns the new failure count so the caller can decide about lockout. */
   recordPinFailure(userId: string): Promise<number>;
   lockUser(userId: string, until: Date): Promise<void>;
