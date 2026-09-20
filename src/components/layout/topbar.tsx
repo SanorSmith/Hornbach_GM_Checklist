@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, ClipboardList, LogOut, Settings } from 'lucide-react';
+import { Archive, BarChart3, ClipboardList, LogOut, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,14 @@ export function Topbar({ displayName, username, roles }: {
               <Button variant="ghost" size="compact" aria-label={t('nav.leader')}>
                 <ClipboardList className="h-4 w-4" aria-hidden />
                 <span className="hidden xs:inline">{t('nav.leader')}</span>
+              </Button>
+            </Link>
+          )}
+          {isLeader(roles) && (
+            <Link href="/protokoll" className="focus-visible:rounded-gm">
+              <Button variant="ghost" size="compact" aria-label={t('prot.archive')}>
+                <Archive className="h-4 w-4" aria-hidden />
+                <span className="hidden sm:inline">{t('prot.archive')}</span>
               </Button>
             </Link>
           )}

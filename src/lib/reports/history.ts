@@ -33,6 +33,8 @@ export interface ListHistory {
 }
 
 export interface Deviation {
+  /** So the leader can open the filed copy of the list this was found on. */
+  runId: string;
   businessDate: string;
   templateCode: string;
   nameSv: string;
@@ -104,6 +106,7 @@ export async function buildHistoryReport(period: Period, today: string): Promise
   const deviations: Deviation[] = runs
     .filter((r) => r.controlStatus === 'NOT_OK' || r.controlStatus === 'FOLLOW_UP')
     .map((r) => ({
+      runId: r.id,
       businessDate: r.businessDate,
       templateCode: r.templateCode,
       nameSv: nameByCode.get(r.templateCode) ?? r.templateCode,
