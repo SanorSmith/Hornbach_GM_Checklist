@@ -118,4 +118,13 @@ export const en: Record<MessageKey, string> = {
   'control.noteRequired': 'Write what is wrong or needs following up.',
   'control.saving': 'Saving…',
   'control.awaiting': '{count} awaiting after-control',
+
+  'assign.label': 'Assigned to',
+  'assign.nobody': 'Nobody assigned',
+  'assign.choose': 'Choose a person…',
+  'assign.saving': 'Saving…',
+  'assign.unstarted': '{count} assigned but not started',
+  'assign.notAssigned': 'Not assigned to anyone',
+  'assign.mine': 'Your lists today',
+  'assign.doneBySomeoneElse': 'Being done by someone other than the assignee',
 };

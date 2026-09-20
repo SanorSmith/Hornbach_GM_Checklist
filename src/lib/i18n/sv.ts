@@ -117,6 +117,15 @@ export const sv = {
   'control.noteRequired': 'Skriv vad som är fel eller ska följas upp.',
   'control.saving': 'Sparar…',
   'control.awaiting': '{count} väntar på efterkontroll',
+
+  'assign.label': 'Tilldelad',
+  'assign.nobody': 'Ingen tilldelad',
+  'assign.choose': 'Välj person…',
+  'assign.saving': 'Sparar…',
+  'assign.unstarted': '{count} tilldelade men inte påbörjade',
+  'assign.notAssigned': 'Inte tilldelad någon',
+  'assign.mine': 'Dina listor idag',
+  'assign.doneBySomeoneElse': 'Genomförs av någon annan än den tilldelade',
 } as const;
 
 export type MessageKey = keyof typeof sv;

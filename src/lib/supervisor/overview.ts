@@ -29,6 +29,8 @@ export interface ChecklistOverview {
   signedAt: string | null;
   /** Efterkontroll. PENDING on anything not yet reviewed, signed or not. */
   control: RunControl;
+  /** Who was meant to do it, which is not the same as who did. */
+  assignedTo: { id: string; name: string } | null;
   progress: { answered: number; applicable: number; overdue: number; blocked: number };
   /** True when a deadline on an unanswered point has already passed. */
   isLate: boolean;
@@ -43,6 +45,8 @@ export interface SupervisorOverview {
     readyToSign: number;
     signed: number;
     overdue: number;
+    /** Assigned to someone and still untouched — the ones worth chasing. */
+    unstartedButAssigned: number;
     /** Signed lists nobody has reviewed — the supervisor's actual queue. */
     awaitingControl: number;
   };
@@ -65,10 +69,18 @@ export async function buildSupervisorOverview(
   now: Date,
 ): Promise<SupervisorOverview> {
   const repo = repository();
-  const [runs, users] = await Promise.all([repo.listRunsForDate(businessDate), repo.listUsers()]);
+  const [runs, users, assignments] = await Promise.all([
+    repo.listRunsForDate(businessDate),
+    repo.listUsers(),
+    repo.listAssignments(businessDate),
+  ]);
 
   const nameById = new Map(users.map((u) => [u.id, u.displayName]));
   const runByTemplate = new Map(runs.map((r) => [r.templateCode, r]));
+  // Slot 1 is the list's owner; slot 2 is the evening list's "Person 2".
+  const assignmentByTemplate = new Map(
+    assignments.filter((a) => a.slot === 1).map((a) => [a.templateCode, a]),
+  );
 
   const checklists: ChecklistOverview[] = [];
 
@@ -123,6 +135,10 @@ export async function buildSupervisorOverview(
       signedBy: signature?.displayName ?? null,
       signedAt: signature?.signedAt ?? null,
       control: run?.control ?? { status: 'PENDING', by: null, at: null, note: null },
+      assignedTo: (() => {
+        const a = assignmentByTemplate.get(entry.code);
+        return a ? { id: a.assignedTo, name: a.assignedToName } : null;
+      })(),
       progress,
       isLate: progress.overdue > 0,
     });
@@ -137,6 +153,9 @@ export async function buildSupervisorOverview(
       readyToSign: checklists.filter((c) => c.status === 'READY_TO_SIGN').length,
       signed: checklists.filter((c) => c.status === 'SIGNED').length,
       overdue: checklists.filter((c) => c.isLate).length,
+      unstartedButAssigned: checklists.filter(
+        (c) => c.status === 'NOT_STARTED' && c.assignedTo !== null,
+      ).length,
       awaitingControl: checklists.filter(
         (c) => c.status === 'SIGNED' && c.control.status === 'PENDING',
       ).length,

@@ -198,6 +198,10 @@ export function createMemoryRepository(): Repository {
     controlRun: (...args) => memoryRunRepository.controlRun(...args),
     listRunsForDate: (...args) => memoryRunRepository.listRunsForDate(...args),
 
+    listAssignments: (...args) => memoryAssignmentRepository.listAssignments(...args),
+    setAssignment: (...args) => memoryAssignmentRepository.setAssignment(...args),
+    clearAssignment: (...args) => memoryAssignmentRepository.clearAssignment(...args),
+
     addAttachment: (...args) => memoryEvidenceRepository.addAttachment(...args),
     listAttachments: (...args) => memoryEvidenceRepository.listAttachments(...args),
     readAttachment: (...args) => memoryEvidenceRepository.readAttachment(...args),
@@ -216,6 +220,80 @@ export function __resetMemoryRepositoryForTests(): void {
   // Photos live in their own global store, so clearing only the two above left
   // attachments leaking between tests.
   delete (globalThis as { __gmPhotos?: unknown }).__gmPhotos;
+  delete (globalThis as { __gmAssignments?: unknown }).__gmAssignments;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Assignments (demo mode)                                                    */
+/* -------------------------------------------------------------------------- */
+
+interface StoredAssignment {
+  businessDate: string;
+  templateCode: string;
+  slot: number;
+  assignedTo: string;
+  assignedAt: string;
+}
+
+const globalForAssignments = globalThis as unknown as { __gmAssignments?: StoredAssignment[] };
+
+function assignmentStore(): StoredAssignment[] {
+  globalForAssignments.__gmAssignments ??= [];
+  return globalForAssignments.__gmAssignments;
+}
+
+/** Keyed the same way as the unique index: one owner per list, day and slot. */
+function sameSlot(a: StoredAssignment, b: Omit<StoredAssignment, 'assignedTo' | 'assignedAt'>) {
+  return (
+    a.businessDate === b.businessDate && a.templateCode === b.templateCode && a.slot === b.slot
+  );
+}
+
+export const memoryAssignmentRepository = {
+  async listAssignments(businessDate: string) {
+    const users = (await state()).users;
+    const byId = new Map([...users.values()].map((u) => [u.id, u.displayName]));
+    return assignmentStore()
+      .filter((a) => a.businessDate === businessDate)
+      .map((a) => ({
+        templateCode: a.templateCode,
+        slot: a.slot,
+        assignedTo: a.assignedTo,
+        assignedToName: byId.get(a.assignedTo) ?? 'Okänd',
+        assignedAt: a.assignedAt,
+      }));
+  },
+
+  async setAssignment(input: {
+    businessDate: string;
+    templateCode: string;
+    slot: number;
+    assignedTo: string;
+    assignedBy: string;
+  }) {
+    const store = assignmentStore();
+    const existing = store.findIndex((a) => sameSlot(a, input));
+    const record: StoredAssignment = {
+      businessDate: input.businessDate,
+      templateCode: input.templateCode,
+      slot: input.slot,
+      assignedTo: input.assignedTo,
+      assignedAt: new Date().toISOString(),
+    };
+    if (existing >= 0) store[existing] = record;
+    else store.push(record);
+  },
+
+  async clearAssignment(input: { businessDate: string; templateCode: string; slot: number }) {
+    const store = assignmentStore();
+    const at = store.findIndex((a) => sameSlot(a, input));
+    if (at >= 0) store.splice(at, 1);
+  },
+};
+
+/** Test-only: forgets every assignment. */
+export function __resetAssignmentsForTests(): void {
+  delete (globalThis as { __gmAssignments?: unknown }).__gmAssignments;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -43,6 +43,13 @@
       "when": 1789910531464,
       "tag": "0005_after_control",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789911244806,
+      "tag": "0006_assignments",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { and, eq, sql as raw } from 'drizzle-orm';
 import type { AuthUser, Role } from '@/lib/auth/types';
 import { getDb, schema } from '@/lib/db/client';
+import { postgresAssignmentRepository } from './postgres-assignments';
 import { postgresEvidenceRepository } from './postgres-evidence';
 import { postgresRunRepository } from './postgres-runs';
 import { storeId } from './postgres-store';
@@ -224,6 +225,10 @@ export function createPostgresRepository(): Repository {
     signRun: (...args) => postgresRunRepository.signRun(...args),
     controlRun: (...args) => postgresRunRepository.controlRun(...args),
     listRunsForDate: (...args) => postgresRunRepository.listRunsForDate(...args),
+
+    listAssignments: (...args) => postgresAssignmentRepository.listAssignments(...args),
+    setAssignment: (...args) => postgresAssignmentRepository.setAssignment(...args),
+    clearAssignment: (...args) => postgresAssignmentRepository.clearAssignment(...args),
 
     addAttachment: (...args) => postgresEvidenceRepository.addAttachment(...args),
     listAttachments: (...args) => postgresEvidenceRepository.listAttachments(...args),
