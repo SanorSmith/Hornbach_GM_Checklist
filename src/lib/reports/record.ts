@@ -114,17 +114,29 @@ const EXTENSION: Record<string, string> = {
   'image/heic': 'heic',
 };
 
-/** `GM_LF_MORGON.CONT.02` + the second photo of it -> `CONT.02-2.jpg`. */
+/**
+ * The second photo of `GM_LF_MORGON.CONT.02` on 20 September ->
+ * `2026-09-20-CONT.02-2.jpg`.
+ *
+ * The date leads so the names sort chronologically, and it is the run's
+ * business date rather than the upload time: a list started before midnight
+ * and signed after belongs to the shift it was performed on, and every other
+ * figure in the record is keyed that way. It repeats the record's own header,
+ * which is deliberate — a printed page that gets separated from its first
+ * sheet still says which day each photo is from.
+ *
+ * The template prefix stays out: `GM_LF_MORGON` on every line is noise, and
+ * the point code plus the date is already unique.
+ */
 export function photoNameFor(
   itemCode: string,
   contentType: string,
   index: number,
+  businessDate: string,
 ): string {
-  // Drop the template prefix: the record's own header already says which
-  // checklist and which day this is, so repeating it on every line is noise.
   const point = itemCode.split('.').slice(1).join('.') || itemCode;
   const extension = EXTENSION[contentType.toLowerCase()] ?? 'bild';
-  return `${point}-${index + 1}.${extension}`;
+  return `${businessDate}-${point}-${index + 1}.${extension}`;
 }
 
 const ANSWER_SV: Record<'JA' | 'NEJ' | 'INGET_BEHOV', string> = {
@@ -213,7 +225,7 @@ function assembleRecord({ run, template, seed, summary, attachments }: Assembled
             fields,
             photos: (photosByCode.get(item.code) ?? []).map((photo, index) => ({
               ...photo,
-              name: photoNameFor(item.code, photo.contentType, index),
+              name: photoNameFor(item.code, photo.contentType, index, run.businessDate),
               shortId: photo.id.slice(0, 8),
             })),
             answeredAt: state?.answeredAt ?? null,
