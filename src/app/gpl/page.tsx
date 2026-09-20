@@ -188,13 +188,27 @@ export default async function SupervisorPage() {
                         as a side effect, so linking an unstarted list would
                         quietly make the group leader its owner. */}
                     {list.runId && (
-                      <Link
-                        href={`/lista/${list.code}`}
-                        className="mt-3 inline-flex min-h-touch items-center gap-1 text-sm font-semibold text-[hsl(var(--gm-brand))] focus-visible:rounded-gm"
-                      >
-                        {t('gpl.open')}
-                        <ChevronRight className="h-4 w-4" aria-hidden />
-                      </Link>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
+                        <Link
+                          href={`/lista/${list.code}`}
+                          className="inline-flex min-h-touch items-center gap-1 text-sm font-semibold text-[hsl(var(--gm-brand))] focus-visible:rounded-gm"
+                        >
+                          {t('gpl.open')}
+                          <ChevronRight className="h-4 w-4" aria-hidden />
+                        </Link>
+
+                        {/* The filed copy, once it is signed. Before that there
+                            is nothing to file. */}
+                        {list.status === 'SIGNED' && (
+                          <Link
+                            href={`/protokoll/${list.runId}`}
+                            className="inline-flex min-h-touch items-center gap-1 text-sm font-semibold text-[hsl(var(--gm-brand))] focus-visible:rounded-gm"
+                          >
+                            {t('prot.open')}
+                            <ChevronRight className="h-4 w-4" aria-hidden />
+                          </Link>
+                        )}
+                      </div>
                     )}
 
                     {/* Assignment stays editable after work starts: shifts change

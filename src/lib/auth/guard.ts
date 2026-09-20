@@ -63,8 +63,13 @@ export async function requireUserOrRedirect(returnTo?: string): Promise<SessionD
   return session;
 }
 
-export async function requireLeaderOrRedirect(): Promise<SessionData> {
-  const session = await requireUserOrRedirect('/gpl');
+/**
+ * `returnTo` is where sign-in should land, defaulting to the leader's own
+ * start page. A leader opening a bookmarked record should get that record back
+ * after logging in, not be dropped on today's overview.
+ */
+export async function requireLeaderOrRedirect(returnTo = '/gpl'): Promise<SessionData> {
+  const session = await requireUserOrRedirect(returnTo);
   if (!isLeader(session.roles)) redirect('/');
   return session;
 }

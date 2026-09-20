@@ -135,6 +135,15 @@ function ByList({ report }: { report: HistoryReport }) {
                     {d.performedByName && d.controlledByName && ' · '}
                     {d.controlledByName && `${t('rep.reviewedBy')} ${d.controlledByName}`}
                   </p>
+
+                  {/* Straight to the filed copy: the next question after "what
+                      went wrong" is always "what did the list actually say". */}
+                  <Link
+                    href={`/protokoll/${d.runId}`}
+                    className="mt-2 inline-flex min-h-touch items-center gap-1 text-sm font-semibold text-[hsl(var(--gm-brand))] focus-visible:rounded-gm"
+                  >
+                    {t('prot.open')}
+                  </Link>
                 </CardBody>
               </Card>
             </li>

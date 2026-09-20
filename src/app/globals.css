@@ -301,3 +301,78 @@
     clip-path: inset(50%);
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Printing a protokoll                                                       */
+/* -------------------------------------------------------------------------- */
+/* The record pages are meant to leave the building as paper, so printing is a
+   first-class output rather than whatever the browser makes of the screen.
+   Everything interactive is dropped, colour is flattened to ink, and a point
+   is never allowed to break across two sheets — a checklist whose answer sits
+   on the next page is exactly the ambiguity the paper form had. */
+@media print {
+  .gm-no-print {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .gm-shell {
+    max-width: none;
+    padding: 0;
+  }
+
+  .gm-print-sheet {
+    font-size: 10pt;
+    line-height: 1.35;
+  }
+
+  /* Every rule on the sheet in ink. Blunt on purpose: the screen palette is
+     hairline greys on a bright panel, and none of it survives a warehouse
+     printer. A drop shadow costs toner and says nothing on paper. */
+  .gm-print-sheet,
+  .gm-print-sheet * {
+    border-color: #000 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  /* Muted text carries the labels — 'Svar:', 'Anteckning:', the field names —
+     so it has to stay readable rather than fade to the grey it is on screen. */
+  .gm-print-sheet .gm-muted {
+    color: #333 !important;
+  }
+
+  .gm-print-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .gm-print-section {
+    break-before: auto;
+  }
+
+  .gm-print-section > h2 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .gm-print-photo {
+    max-height: 30mm;
+    width: auto;
+  }
+
+  a[href]::after {
+    content: '';
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm;
+  }
+}
