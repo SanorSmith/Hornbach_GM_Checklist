@@ -39,3 +39,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# staff list and issued PINs — personal data and credentials, never commit
+staff.local.txt
+staff-pins.local.txt
