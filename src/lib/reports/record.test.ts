@@ -31,6 +31,7 @@ async function openRun(code: string) {
   });
 }
 
+/** Signs as one of the demo users and returns which, so tests can name them. */
 async function sign(runId: string, slot = 1) {
   const users = await repository().listUsers();
   const user = users[slot - 1] ?? users[0]!;
@@ -43,6 +44,7 @@ async function sign(runId: string, slot = 1) {
     signatureHash: 's',
     snapshot: {},
   });
+  return user;
 }
 
 describe('buildRunRecord', () => {
@@ -139,13 +141,13 @@ describe('buildRunRecord', () => {
 
   it('leaves the leader review out of the worker signatures and carries the verdict', async () => {
     const run = await openRun('GM_GPL');
-    await sign(run.id);
+    const worker = await sign(run.id);
     await repository().controlRun(run.id, {
       status: 'NOT_OK',
       note: 'FiFo:n var inte justerad.',
       userId: 'leader',
-      username: 'erik',
-      displayName: 'Erik Andersson',
+      username: 'granskaren',
+      displayName: 'Granskaren',
       contentHash: 'c',
       signatureHash: 's',
       snapshot: {},
@@ -153,10 +155,11 @@ describe('buildRunRecord', () => {
 
     const record = (await buildRunRecord(run.id))!;
 
+    // Both signatures live in the same table; only the worker's belongs here.
     expect(record.signatures).toHaveLength(1);
-    expect(record.signatures[0]?.displayName).not.toBe('Erik Andersson');
+    expect(record.signatures[0]?.username).toBe(worker.username);
     expect(record.control.status).toBe('NOT_OK');
-    expect(record.control.by).toBe('Erik Andersson');
+    expect(record.control.by).toBe('Granskaren');
     expect(record.control.note).toBe('FiFo:n var inte justerad.');
   });
 

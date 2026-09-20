@@ -46,12 +46,11 @@ interface MemoryState {
 const globalForMemory = globalThis as unknown as { __gmMemory?: Promise<MemoryState> };
 
 async function buildState(): Promise<MemoryState> {
-  const users = new Map<string, AuthUser>();
-
-  // Hashing costs ~165ms each, so do it once per process, lazily.
-  await Promise.all(
-    DEMO_USERS.map(async (seed, index) => {
-      const user: AuthUser = {
+  // Hashing costs ~165ms each, so do it once per process, lazily, and in
+  // parallel.
+  const built = await Promise.all(
+    DEMO_USERS.map(async (seed, index): Promise<AuthUser> => {
+      return {
         id: `00000000-0000-4000-8000-00000000010${index}`,
         storeId: DEMO_STORE_ID,
         username: seed.username,
@@ -63,9 +62,15 @@ async function buildState(): Promise<MemoryState> {
         pinFailedCount: 0,
         lockedUntil: null,
       };
-      users.set(user.username, user);
     }),
   );
+
+  // Inserted after the hashing, in seed order. Setting each user from inside
+  // its own async callback put them in whatever order the hashes happened to
+  // finish, so `listUsers()` came back shuffled from one process to the next —
+  // which is a reordered dropdown for the group leader, and a test that passes
+  // locally and fails in CI.
+  const users = new Map<string, AuthUser>(built.map((u) => [u.username, u]));
 
   return { users, sessions: new Map(), audit: [] };
 }
