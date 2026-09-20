@@ -1,8 +1,14 @@
-import { and, desc, eq, gte, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { getDb, schema } from '@/lib/db/client';
 import { storeId } from './postgres-store';
-import type { AnswerPatch, RunDetail, RunItemStateRecord, RunRepository } from './types';
+import type {
+  AnswerPatch,
+  RunDetail,
+  RunItemStateRecord,
+  RunRepository,
+  RunSigner,
+} from './types';
 
 /** Numeric fields come back from Postgres as strings; keep them numbers here. */
 function readFieldValue(row: {
@@ -58,6 +64,7 @@ async function loadRun(runId: string): Promise<RunDetail | null> {
 
   const signatures = signatureRows.map((s) => ({
     slot: s.slot,
+    userId: s.userId,
     purpose: s.purpose,
     username: s.username,
     displayName: s.displayName,
@@ -278,6 +285,7 @@ export const postgresRunRepository: RunRepository = {
         businessDate: schema.checklistRuns.businessDate,
         status: schema.checklistRuns.status,
         submittedAt: schema.checklistRuns.submittedAt,
+        performedById: schema.checklistRuns.createdBy,
         performedByName: performer.displayName,
         controlStatus: schema.checklistRuns.controlStatus,
         controlledAt: schema.checklistRuns.controlledAt,
@@ -296,12 +304,57 @@ export const postgresRunRepository: RunRepository = {
       )
       .orderBy(desc(schema.checklistRuns.businessDate));
 
+    // Signatures come separately rather than as a third join. A run can carry
+    // more than one worker signature — GM_LF_KVALL has two assignee slots —
+    // and joining them in would return that run twice, inflating every count
+    // in the report by one per extra signer.
+    const signers = new Map<string, RunSigner[]>();
+    if (rows.length > 0) {
+      const signer = alias(schema.users, 'signer');
+      const signatureRows = await db
+        .select({
+          runId: schema.signatures.runId,
+          userId: schema.signatures.userId,
+          slot: schema.signatures.slot,
+          signedAt: schema.signatures.signedAt,
+          displayName: signer.displayName,
+        })
+        .from(schema.signatures)
+        .leftJoin(signer, eq(signer.id, schema.signatures.userId))
+        .where(
+          and(
+            inArray(
+              schema.signatures.runId,
+              rows.map((r) => r.id),
+            ),
+            // The workers' own sign-offs; a leader's control signature lives in
+            // the same table and is not the same act.
+            eq(schema.signatures.purpose, 'WORKER_SUBMIT'),
+          ),
+        )
+        .orderBy(schema.signatures.slot);
+
+      for (const s of signatureRows) {
+        signers.set(s.runId, [
+          ...(signers.get(s.runId) ?? []),
+          {
+            userId: s.userId,
+            slot: s.slot,
+            displayName: s.displayName,
+            signedAt: s.signedAt.toISOString(),
+          },
+        ]);
+      }
+    }
+
     return rows.map((r) => ({
       id: r.id,
       templateCode: r.templateCode,
       businessDate: r.businessDate,
       status: r.status === 'SUBMITTED' ? ('SUBMITTED' as const) : ('OPEN' as const),
+      performedById: r.performedById,
       performedByName: r.performedByName,
+      signers: signers.get(r.id) ?? [],
       submittedAt: r.submittedAt?.toISOString() ?? null,
       controlStatus: r.controlStatus,
       controlledByName: r.controlledByName,

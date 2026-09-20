@@ -160,6 +160,16 @@ export const sv = {
   'rep.noNote': '(ingen anteckning)',
   'rep.doneBy': 'Genomförd av',
   'rep.reviewedBy': 'Kontrollerad av',
+
+  'rep.byList': 'Per checklista',
+  'rep.byPerson': 'Per person',
+  'rep.assigned': 'Tilldelade',
+  'rep.assignedNotSigned': 'Tilldelade, ej signerade',
+  'rep.opened': 'Påbörjade',
+  'rep.signedBy': 'Signerade',
+  'rep.deviationsOn': 'Avvikelser',
+  'rep.noPeople': 'Inga användare ännu.',
+  'rep.personNote': 'Signerade räknas på den som signerat listan, inte den som öppnat den.',
 } as const;
 
 export type MessageKey = keyof typeof sv;

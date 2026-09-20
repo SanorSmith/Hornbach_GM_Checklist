@@ -200,6 +200,7 @@ export function createMemoryRepository(): Repository {
     listRunsBetween: (...args) => memoryRunRepository.listRunsBetween(...args),
 
     listAssignments: (...args) => memoryAssignmentRepository.listAssignments(...args),
+    listAssignmentsBetween: (...args) => memoryAssignmentRepository.listAssignmentsBetween(...args),
     setAssignment: (...args) => memoryAssignmentRepository.setAssignment(...args),
     clearAssignment: (...args) => memoryAssignmentRepository.clearAssignment(...args),
 
@@ -414,6 +415,21 @@ export const memoryAssignmentRepository = {
       }));
   },
 
+  async listAssignmentsBetween(from: string, to: string) {
+    const users = (await state()).users;
+    const byId = new Map([...users.values()].map((u) => [u.id, u.displayName]));
+    return assignmentStore()
+      .filter((a) => a.businessDate >= from && a.businessDate <= to)
+      .map((a) => ({
+        businessDate: a.businessDate,
+        templateCode: a.templateCode,
+        slot: a.slot,
+        assignedTo: a.assignedTo,
+        assignedToName: byId.get(a.assignedTo) ?? 'Okänd',
+        assignedAt: a.assignedAt,
+      }));
+  },
+
   async setAssignment(input: {
     businessDate: string;
     templateCode: string;
@@ -526,6 +542,7 @@ export const memoryRunRepository: RunRepository = {
 
     run.signatures.push({
       slot: input.slot,
+      userId: input.userId,
       purpose: 'WORKER_SUBMIT',
       username: input.username,
       displayName: input.displayName,
@@ -548,6 +565,7 @@ export const memoryRunRepository: RunRepository = {
     const at = new Date().toISOString();
     run.signatures.push({
       slot: 1,
+      userId: input.userId,
       purpose: 'LEADER_CONTROL',
       username: input.username,
       displayName: input.displayName,
@@ -569,7 +587,19 @@ export const memoryRunRepository: RunRepository = {
         templateCode: r.templateCode,
         businessDate: r.businessDate,
         status: r.status,
+        performedById: r.createdBy,
         performedByName: r.createdBy ? (nameById.get(r.createdBy) ?? null) : null,
+        // Every worker signature, not the first: a two-slot list is signed by
+        // two people and both of them did the work.
+        signers: r.signatures
+          .filter((sig) => sig.purpose === 'WORKER_SUBMIT')
+          .sort((a, b) => a.slot - b.slot)
+          .map((sig) => ({
+            userId: sig.userId,
+            slot: sig.slot,
+            displayName: sig.displayName,
+            signedAt: sig.signedAt,
+          })),
         submittedAt: r.signatures.find((sig) => sig.purpose === 'WORKER_SUBMIT')?.signedAt ?? null,
         controlStatus: r.control.status,
         controlledByName: r.control.by,

@@ -230,6 +230,7 @@ export function createPostgresRepository(): Repository {
     listRunsBetween: (...args) => postgresRunRepository.listRunsBetween(...args),
 
     listAssignments: (...args) => postgresAssignmentRepository.listAssignments(...args),
+    listAssignmentsBetween: (...args) => postgresAssignmentRepository.listAssignmentsBetween(...args),
     setAssignment: (...args) => postgresAssignmentRepository.setAssignment(...args),
     clearAssignment: (...args) => postgresAssignmentRepository.clearAssignment(...args),
 
