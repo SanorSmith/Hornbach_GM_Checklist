@@ -77,6 +77,8 @@ export type ShiftCode = 'MORNING' | 'MIDDAY' | 'EVENING' | 'FULL_DAY';
 
 export interface RunSignature {
   slot: number;
+  /** 'WORKER_SUBMIT' for the person who did the list, 'LEADER_CONTROL' for the review. */
+  purpose: string;
   username: string;
   displayName: string;
   signedAt: string;
@@ -94,6 +96,18 @@ export interface RunDetail {
   createdBy: string | null;
   items: RunItemStateRecord[];
   signatures: RunSignature[];
+  control: RunControl;
+}
+
+export type ControlStatus = 'PENDING' | 'OK' | 'NOT_OK' | 'FOLLOW_UP';
+
+/** Efterkontroll: the group leader's verdict on a finished list. */
+export interface RunControl {
+  status: ControlStatus;
+  /** Display name of the reviewer, or null while PENDING. */
+  by: string | null;
+  at: string | null;
+  note: string | null;
 }
 
 export interface RunItemStateRecord {
@@ -132,6 +146,27 @@ export interface RunRepository {
     runId: string,
     input: {
       slot: number;
+      userId: string;
+      username: string;
+      displayName: string;
+      contentHash: string;
+      signatureHash: string;
+      snapshot: unknown;
+    },
+  ): Promise<void>;
+
+  /**
+   * Records the group leader's review of a submitted run.
+   *
+   * Writes the verdict onto the run and a signature row with purpose
+   * 'LEADER_CONTROL', so a review is as tamper-evident as the original
+   * sign-off rather than a status field anyone could flip.
+   */
+  controlRun(
+    runId: string,
+    input: {
+      status: Exclude<ControlStatus, 'PENDING'>;
+      note: string | null;
       userId: string;
       username: string;
       displayName: string;

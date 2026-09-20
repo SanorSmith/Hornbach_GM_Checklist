@@ -1,7 +1,7 @@
 import { CHECKLIST_CATALOGUE, getSeed, getTemplate } from '@/lib/checklists';
 import { STORE_TIME_ZONE } from '@/lib/config';
 import { repository } from '@/lib/repo';
-import type { RunDetail } from '@/lib/repo/types';
+import type { RunControl, RunDetail } from '@/lib/repo/types';
 import { evaluateRun } from '@/lib/rules/evaluate';
 import { zonedToInstant } from '@/lib/rules/time';
 import { toEngineItems } from '@/lib/runs/engine-input';
@@ -27,6 +27,8 @@ export interface ChecklistOverview {
   performedBy: string | null;
   signedBy: string | null;
   signedAt: string | null;
+  /** Efterkontroll. PENDING on anything not yet reviewed, signed or not. */
+  control: RunControl;
   progress: { answered: number; applicable: number; overdue: number; blocked: number };
   /** True when a deadline on an unanswered point has already passed. */
   isLate: boolean;
@@ -35,7 +37,15 @@ export interface ChecklistOverview {
 export interface SupervisorOverview {
   businessDate: string;
   checklists: ChecklistOverview[];
-  totals: { notStarted: number; inProgress: number; readyToSign: number; signed: number; overdue: number };
+  totals: {
+    notStarted: number;
+    inProgress: number;
+    readyToSign: number;
+    signed: number;
+    overdue: number;
+    /** Signed lists nobody has reviewed — the supervisor's actual queue. */
+    awaitingControl: number;
+  };
 }
 
 function statusOf(run: RunDetail | undefined, canSubmit: boolean): RunStatus {
@@ -97,7 +107,9 @@ export async function buildSupervisorOverview(
       };
     }
 
-    const signature = run?.signatures?.[0] ?? null;
+    // The worker's sign-off specifically: a control signature also lives here,
+    // and showing the reviewer as the person who did the list would be wrong.
+    const signature = run?.signatures?.find((sig) => sig.purpose === 'WORKER_SUBMIT') ?? null;
 
     checklists.push({
       code: entry.code,
@@ -110,6 +122,7 @@ export async function buildSupervisorOverview(
       performedBy: run?.createdBy ? (nameById.get(run.createdBy) ?? null) : null,
       signedBy: signature?.displayName ?? null,
       signedAt: signature?.signedAt ?? null,
+      control: run?.control ?? { status: 'PENDING', by: null, at: null, note: null },
       progress,
       isLate: progress.overdue > 0,
     });
@@ -124,6 +137,9 @@ export async function buildSupervisorOverview(
       readyToSign: checklists.filter((c) => c.status === 'READY_TO_SIGN').length,
       signed: checklists.filter((c) => c.status === 'SIGNED').length,
       overdue: checklists.filter((c) => c.isLate).length,
+      awaitingControl: checklists.filter(
+        (c) => c.status === 'SIGNED' && c.control.status === 'PENDING',
+      ).length,
     },
   };
 }

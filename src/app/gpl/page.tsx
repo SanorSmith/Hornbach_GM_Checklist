@@ -7,9 +7,11 @@ import { Topbar } from '@/components/layout/topbar';
 import { requireLeaderOrRedirect } from '@/lib/auth/guard';
 import { STORE_TIME_ZONE } from '@/lib/config';
 import { t } from '@/lib/i18n';
+import type { ControlStatus } from '@/lib/repo/types';
 import { businessDateOf } from '@/lib/rules/time';
 import { buildSupervisorOverview, type ChecklistOverview } from '@/lib/supervisor/overview';
 import { formatDate } from '@/lib/utils';
+import { ControlActions } from './control-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,16 +22,20 @@ const STATUS_LABEL: Record<ChecklistOverview['status'], string> = {
   SIGNED: t('gpl.signed'),
 };
 
+const CONTROL_LABEL: Record<ControlStatus, string> = {
+  PENDING: t('control.pending'),
+  OK: t('control.ok'),
+  NOT_OK: t('control.notOk'),
+  FOLLOW_UP: t('control.followUp'),
+};
+
 function fill(key: Parameters<typeof t>[0], values: Record<string, string | number>): string {
-  return Object.entries(values).reduce(
-    (text, [k, v]) => text.replace(`{${k}}`, String(v)),
-    t(key),
-  );
+  return Object.entries(values).reduce((text, [k, v]) => text.replace(`{${k}}`, String(v)), t(key));
 }
 
 /**
  * The group leader's view of the day: every checklist, who has it, how far it
- * has got, and what is late.
+ * has got, what is late, and what still needs efterkontroll.
  *
  * Built from the catalogue rather than from the runs, because the state that
  * matters most — nobody has started the evening list — has no run to list.
@@ -52,96 +58,103 @@ export default async function SupervisorPage() {
       <main className="gm-shell py-6">
         <h1 className="gm-section-title">{t('gpl.title')}</h1>
         <p className="gm-muted mb-1 text-sm">{formatDate(businessDate)}</p>
-        <p className="gm-muted mb-4 text-sm">
+        <p className="gm-muted text-sm">
           {fill('gpl.summary', {
             notStarted: overview.totals.notStarted,
             inProgress: overview.totals.inProgress + overview.totals.readyToSign,
             signed: overview.totals.signed,
           })}
         </p>
+        {overview.totals.awaitingControl > 0 && (
+          <p className="mb-4 mt-1 text-sm font-semibold">
+            {fill('control.awaiting', { count: overview.totals.awaitingControl })}
+          </p>
+        )}
 
-        <ul className="space-y-3">
+        <ul className="mt-4 space-y-3">
           {overview.checklists.map((list) => {
             const percent =
               list.progress.applicable === 0
                 ? 0
                 : (list.progress.answered / list.progress.applicable) * 100;
+            const awaitingControl = list.status === 'SIGNED' && list.control.status === 'PENDING';
+            const reviewed = list.control.status !== 'PENDING';
 
-            const card = (
-              <Card
-                className={
-                  list.isLate
-                    ? 'border-[hsl(var(--gm-danger))]'
-                    : list.status === 'SIGNED'
-                      ? 'border-[hsl(var(--gm-success))]'
-                      : undefined
-                }
-              >
-                <CardBody>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <CardTitle className="truncate">{list.nameSv}</CardTitle>
-                      <p className="gm-muted mt-1 text-sm">
-                        {list.roleSv} · {list.windowSv}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <Badge>{STATUS_LABEL[list.status]}</Badge>
-                      {list.isLate && <Badge>{t('gpl.late')}</Badge>}
-                    </div>
-                  </div>
-
-                  {list.status !== 'NOT_STARTED' && (
-                    <>
-                      <div className="progress mt-3">
-                        <div style={{ width: `${percent}%` }} />
-                      </div>
-                      <p className="gm-muted mt-1 text-xs">
-                        {fill('gpl.answeredOf', {
-                          answered: list.progress.answered,
-                          total: list.progress.applicable,
-                        })}
-                        {list.progress.blocked > 0 &&
-                          ` · ${fill('gpl.blocked', { count: list.progress.blocked })}`}
-                        {list.progress.overdue > 0 &&
-                          ` · ${fill('gpl.overdueItems', { count: list.progress.overdue })}`}
-                      </p>
-                    </>
-                  )}
-
-                  <p className="gm-muted mt-2 text-sm">
-                    {list.status === 'SIGNED' && list.signedBy
-                      ? `${t('gpl.signedBy')} ${list.signedBy}`
-                      : list.performedBy
-                        ? `${t('gpl.performedBy')} ${list.performedBy}`
-                        : t('gpl.nobodyStarted')}
-                  </p>
-                </CardBody>
-              </Card>
-            );
-
-            // Only linked once a run exists. /lista/[code] opens a run as a side
-            // effect, so linking an unstarted list would quietly make the group
-            // leader its owner just for looking.
             return (
               <li key={list.code}>
-                {list.runId ? (
-                  <Link
-                    href={`/lista/${list.code}`}
-                    className="block focus-visible:rounded-gm"
-                    aria-label={`${t('gpl.open')}: ${list.nameSv}`}
-                  >
-                    <div className="relative">
-                      {card}
-                      <ChevronRight
-                        className="gm-muted absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2"
-                        aria-hidden
-                      />
+                <Card
+                  className={
+                    list.isLate || list.control.status === 'NOT_OK'
+                      ? 'border-[hsl(var(--gm-danger))]'
+                      : list.control.status === 'OK'
+                        ? 'border-[hsl(var(--gm-success))]'
+                        : undefined
+                  }
+                >
+                  <CardBody>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <CardTitle className="truncate">{list.nameSv}</CardTitle>
+                        <p className="gm-muted mt-1 text-sm">
+                          {list.roleSv} · {list.windowSv}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <Badge>{STATUS_LABEL[list.status]}</Badge>
+                        {list.isLate && <Badge>{t('gpl.late')}</Badge>}
+                        {reviewed && <Badge>{CONTROL_LABEL[list.control.status]}</Badge>}
+                      </div>
                     </div>
-                  </Link>
-                ) : (
-                  card
-                )}
+
+                    {list.status !== 'NOT_STARTED' && (
+                      <>
+                        <div className="progress mt-3">
+                          <div style={{ width: `${percent}%` }} />
+                        </div>
+                        <p className="gm-muted mt-1 text-xs">
+                          {fill('gpl.answeredOf', {
+                            answered: list.progress.answered,
+                            total: list.progress.applicable,
+                          })}
+                          {list.progress.blocked > 0 &&
+                            ` · ${fill('gpl.blocked', { count: list.progress.blocked })}`}
+                          {list.progress.overdue > 0 &&
+                            ` · ${fill('gpl.overdueItems', { count: list.progress.overdue })}`}
+                        </p>
+                      </>
+                    )}
+
+                    <p className="gm-muted mt-2 text-sm">
+                      {list.status === 'SIGNED' && list.signedBy
+                        ? `${t('gpl.signedBy')} ${list.signedBy}`
+                        : list.performedBy
+                          ? `${t('gpl.performedBy')} ${list.performedBy}`
+                          : t('gpl.nobodyStarted')}
+                    </p>
+
+                    {reviewed && (
+                      <p className="gm-muted mt-1 text-sm">
+                        {t('control.by')} {list.control.by}
+                        {list.control.note && ` — ${list.control.note}`}
+                      </p>
+                    )}
+
+                    {/* Only linked once a run exists. /lista/[code] opens a run
+                        as a side effect, so linking an unstarted list would
+                        quietly make the group leader its owner. */}
+                    {list.runId && (
+                      <Link
+                        href={`/lista/${list.code}`}
+                        className="mt-3 inline-flex min-h-touch items-center gap-1 text-sm font-semibold text-[hsl(var(--gm-brand))] focus-visible:rounded-gm"
+                      >
+                        {t('gpl.open')}
+                        <ChevronRight className="h-4 w-4" aria-hidden />
+                      </Link>
+                    )}
+
+                    {awaitingControl && list.runId && <ControlActions runId={list.runId} />}
+                  </CardBody>
+                </Card>
               </li>
             );
           })}

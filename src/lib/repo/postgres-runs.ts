@@ -55,6 +55,15 @@ async function loadRun(runId: string): Promise<RunDetail | null> {
     .from(schema.signatures)
     .where(eq(schema.signatures.runId, runId));
 
+  const signatures = signatureRows.map((s) => ({
+    slot: s.slot,
+    purpose: s.purpose,
+    username: s.username,
+    displayName: s.displayName,
+    signedAt: s.signedAt.toISOString(),
+    signatureHash: s.signatureHash,
+  }));
+
   return {
     id: run.id,
     templateCode: run.templateCode,
@@ -64,13 +73,16 @@ async function loadRun(runId: string): Promise<RunDetail | null> {
     status: run.status === 'SUBMITTED' ? 'SUBMITTED' : 'OPEN',
     createdBy: run.createdBy,
     items,
-    signatures: signatureRows.map((s) => ({
-      slot: s.slot,
-      username: s.username,
-      displayName: s.displayName,
-      signedAt: s.signedAt.toISOString(),
-      signatureHash: s.signatureHash,
-    })),
+    signatures,
+    control: {
+      status: run.controlStatus,
+      // Taken from the control signature rather than joining users: the
+      // signature already records who reviewed it, under a name frozen at the
+      // time, which is the name that belongs on the record.
+      by: signatures.find((sig) => sig.purpose === 'LEADER_CONTROL')?.displayName ?? null,
+      at: run.controlledAt?.toISOString() ?? null,
+      note: run.controlNote,
+    },
   };
 }
 
@@ -219,6 +231,33 @@ export const postgresRunRepository: RunRepository = {
     await db
       .update(schema.checklistRuns)
       .set({ status: 'SUBMITTED', submittedAt: new Date() })
+      .where(eq(schema.checklistRuns.id, runId));
+  },
+
+  async controlRun(runId, input) {
+    const db = getDb();
+    // Same unique index as the worker's signature, different purpose, so a
+    // second review of the same run is refused by the database.
+    await db.insert(schema.signatures).values({
+      runId,
+      slot: 1,
+      purpose: 'LEADER_CONTROL',
+      userId: input.userId,
+      username: input.username,
+      displayName: input.displayName,
+      contentHash: input.contentHash,
+      signatureHash: input.signatureHash,
+      snapshot: input.snapshot as object,
+    });
+
+    await db
+      .update(schema.checklistRuns)
+      .set({
+        controlStatus: input.status,
+        controlledBy: input.userId,
+        controlledAt: new Date(),
+        controlNote: input.note,
+      })
       .where(eq(schema.checklistRuns.id, runId));
   },
 
