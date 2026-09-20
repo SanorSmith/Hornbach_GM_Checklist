@@ -90,6 +90,22 @@ export const sv = {
   'admin.saving': 'Sparar…',
   'admin.done': 'Klart',
   'admin.noUsers': 'Inga användare ännu.',
+
+  'gpl.title': 'Översikt för dagen',
+  'gpl.notStarted': 'Ej påbörjad',
+  'gpl.inProgress': 'Pågår',
+  'gpl.readyToSign': 'Klar att signera',
+  'gpl.signed': 'Signerad',
+  'gpl.late': 'Försenad',
+  'gpl.performedBy': 'Genomförs av',
+  'gpl.signedBy': 'Signerad av',
+  'gpl.nobodyStarted': 'Ingen har börjat än',
+  'gpl.answeredOf': '{answered} av {total} besvarade',
+  'gpl.blocked': '{count} kvar att åtgärda',
+  'gpl.overdueItems': '{count} över tid',
+  'gpl.open': 'Öppna listan',
+  'gpl.allDone': 'Alla listor är signerade.',
+  'gpl.summary': '{notStarted} ej påbörjade · {inProgress} pågår · {signed} signerade',
 } as const;
 
 export type MessageKey = keyof typeof sv;

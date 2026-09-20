@@ -1,11 +1,11 @@
 'use client';
 
-import { LogOut, Settings } from 'lucide-react';
+import { ClipboardList, LogOut, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { t } from '@/lib/i18n';
-import type { Role } from '@/lib/auth/types';
+import { isLeader, type Role } from '@/lib/auth/types';
 
 const ROLE_LABEL: Record<Role, string> = {
   WORKER: t('role.worker'),
@@ -45,6 +45,14 @@ export function Topbar({ displayName, username, roles }: {
         <div className="flex shrink-0 items-center gap-1">
           {/* Without this the admin screen exists but is unreachable except by
               typing the URL. */}
+          {isLeader(roles) && (
+            <Link href="/gpl" className="focus-visible:rounded-gm">
+              <Button variant="ghost" size="compact" aria-label={t('nav.leader')}>
+                <ClipboardList className="h-4 w-4" aria-hidden />
+                <span className="hidden xs:inline">{t('nav.leader')}</span>
+              </Button>
+            </Link>
+          )}
           {roles.includes('ADMIN') && (
             <Link href="/admin" className="focus-visible:rounded-gm">
               <Button variant="ghost" size="compact" aria-label={t('nav.admin')}>
