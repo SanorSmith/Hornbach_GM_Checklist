@@ -30,12 +30,32 @@ export interface Assignment {
  * a single run. A month of reporting wants four hundred runs and none of their
  * contents.
  */
+/** One worker's sign-off on a run, with the time they put their own name to it. */
+export interface RunSigner {
+  userId: string;
+  slot: number;
+  displayName: string | null;
+  signedAt: string;
+}
+
 export interface RunSummaryRecord {
   id: string;
   templateCode: string;
   businessDate: string;
   status: 'OPEN' | 'SUBMITTED';
+  /** Who opened the list. */
+  performedById: string | null;
   performedByName: string | null;
+  /**
+   * Who signed it, which is not always who opened it — one worker can start a
+   * list and another finish it. Kept apart so a report cannot put one person's
+   * lateness against another's name.
+   *
+   * A list, not one name: GM_LF_KVALL has two assignee slots and is signed by
+   * two different people, and crediting only the first would quietly erase the
+   * second person's work from every report about them.
+   */
+  signers: RunSigner[];
   submittedAt: string | null;
   controlStatus: ControlStatus;
   controlledByName: string | null;
@@ -45,6 +65,8 @@ export interface RunSummaryRecord {
 
 export interface AssignmentRepository {
   listAssignments(businessDate: string): Promise<Assignment[]>;
+  /** Inclusive on both ends, for reporting. */
+  listAssignmentsBetween(from: string, to: string): Promise<(Assignment & { businessDate: string })[]>;
   /** Replaces any existing assignment for the same list, day and slot. */
   setAssignment(input: {
     businessDate: string;
@@ -200,6 +222,8 @@ export type ShiftCode = 'MORNING' | 'MIDDAY' | 'EVENING' | 'FULL_DAY';
 
 export interface RunSignature {
   slot: number;
+  /** Grouping a per-person report by display name would break on a rename. */
+  userId: string;
   /** 'WORKER_SUBMIT' for the person who did the list, 'LEADER_CONTROL' for the review. */
   purpose: string;
   username: string;

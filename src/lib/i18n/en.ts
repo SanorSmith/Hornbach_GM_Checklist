@@ -161,4 +161,14 @@ export const en: Record<MessageKey, string> = {
   'rep.noNote': '(no note)',
   'rep.doneBy': 'Performed by',
   'rep.reviewedBy': 'Reviewed by',
+
+  'rep.byList': 'Per checklist',
+  'rep.byPerson': 'Per person',
+  'rep.assigned': 'Assigned',
+  'rep.assignedNotSigned': 'Assigned, not signed',
+  'rep.opened': 'Started',
+  'rep.signedBy': 'Signed',
+  'rep.deviationsOn': 'Deviations',
+  'rep.noPeople': 'No users yet.',
+  'rep.personNote': 'Signed counts the person who signed the list, not the one who opened it.',
 };

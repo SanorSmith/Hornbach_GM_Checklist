@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gte, lte } from 'drizzle-orm';
 import { getDb, schema } from '@/lib/db/client';
 import { storeId } from './postgres-store';
 import type { AssignmentRepository } from './types';
@@ -26,6 +26,39 @@ export const postgresAssignmentRepository: AssignmentRepository = {
       );
 
     return rows.map((r) => ({
+      templateCode: r.templateCode,
+      slot: r.slot,
+      assignedTo: r.assignedTo,
+      assignedToName: r.assignedToName,
+      assignedAt: r.assignedAt.toISOString(),
+    }));
+  },
+
+  async listAssignmentsBetween(from, to) {
+    const db = getDb();
+    const store = await storeId();
+
+    const rows = await db
+      .select({
+        businessDate: schema.assignments.businessDate,
+        templateCode: schema.assignments.templateCode,
+        slot: schema.assignments.slot,
+        assignedTo: schema.assignments.assignedTo,
+        assignedToName: schema.users.displayName,
+        assignedAt: schema.assignments.assignedAt,
+      })
+      .from(schema.assignments)
+      .innerJoin(schema.users, eq(schema.users.id, schema.assignments.assignedTo))
+      .where(
+        and(
+          eq(schema.assignments.storeId, store),
+          gte(schema.assignments.businessDate, from),
+          lte(schema.assignments.businessDate, to),
+        ),
+      );
+
+    return rows.map((r) => ({
+      businessDate: r.businessDate,
       templateCode: r.templateCode,
       slot: r.slot,
       assignedTo: r.assignedTo,
