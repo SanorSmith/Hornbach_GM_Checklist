@@ -71,6 +71,25 @@ export const sv = {
   'role.worker': 'Medarbetare',
   'role.groupLeader': 'Gruppledare',
   'role.admin': 'Administratör',
+
+  'admin.title': 'Administration',
+  'admin.users': 'Användare',
+  'admin.newUser': 'Ny användare',
+  'admin.username': 'Användarnamn',
+  'admin.displayName': 'Namn',
+  'admin.roles': 'Behörigheter',
+  'admin.create': 'Skapa konto',
+  'admin.pinTitle': 'PIN-kod för {name}',
+  'admin.pinOnce': 'Visas bara en gång. Skriv ner den och ge den till personen.',
+  'admin.resetPin': 'Ny PIN',
+  'admin.deactivate': 'Inaktivera',
+  'admin.activate': 'Aktivera',
+  'admin.active': 'Aktiv',
+  'admin.inactive': 'Inaktiv',
+  'admin.locked': 'Låst',
+  'admin.saving': 'Sparar…',
+  'admin.done': 'Klart',
+  'admin.noUsers': 'Inga användare ännu.',
 } as const;
 
 export type MessageKey = keyof typeof sv;

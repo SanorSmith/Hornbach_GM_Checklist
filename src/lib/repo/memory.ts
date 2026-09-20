@@ -94,6 +94,47 @@ export function createMemoryRepository(): Repository {
       return [...users.values()];
     },
 
+    async createUser({ username, displayName, roles, pinHash }) {
+      const { users } = await state();
+      if (users.has(username)) throw new Error('Användarnamnet finns redan.');
+      const user: AuthUser = {
+        id: randomUUID(),
+        storeId: DEMO_STORE_ID,
+        username,
+        displayName,
+        roles: [...roles],
+        isActive: true,
+        pinHash,
+        passwordHash: null,
+        pinFailedCount: 0,
+        lockedUntil: null,
+      };
+      users.set(username, user);
+      return user;
+    },
+
+    async setUserRoles(userId, roles) {
+      const { users } = await state();
+      const user = [...users.values()].find((u) => u.id === userId);
+      if (user) user.roles = [...roles];
+    },
+
+    async setUserActive(userId, isActive) {
+      const { users } = await state();
+      const user = [...users.values()].find((u) => u.id === userId);
+      if (user) user.isActive = isActive;
+    },
+
+    async setUserPin(userId, pinHash) {
+      const { users } = await state();
+      const user = [...users.values()].find((u) => u.id === userId);
+      if (user) {
+        user.pinHash = pinHash;
+        user.pinFailedCount = 0;
+        user.lockedUntil = null;
+      }
+    },
+
     async recordPinFailure(userId) {
       const { users } = await state();
       const user = [...users.values()].find((u) => u.id === userId);

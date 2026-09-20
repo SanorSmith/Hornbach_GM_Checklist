@@ -68,6 +68,63 @@ export function createPostgresRepository(): Repository {
       }));
     },
 
+    async createUser({ username, displayName, roles, pinHash }) {
+      const db = getDb();
+      const store = await storeId();
+      const [row] = await db
+        .insert(schema.users)
+        .values({ storeId: store, username, displayName, pinHash })
+        .returning();
+      if (!row) throw new Error('Kunde inte skapa användaren.');
+
+      if (roles.length > 0) {
+        await db
+          .insert(schema.userRoleGrants)
+          .values(roles.map((role) => ({ userId: row.id, role })));
+      }
+
+      return {
+        id: row.id,
+        storeId: row.storeId,
+        username: row.username,
+        displayName: row.displayName,
+        roles: [...roles],
+        isActive: row.isActive,
+        pinHash: row.pinHash,
+        passwordHash: row.passwordHash,
+        pinFailedCount: row.pinFailedCount,
+        lockedUntil: row.lockedUntil,
+      };
+    },
+
+    async setUserRoles(userId, roles) {
+      const db = getDb();
+      // Replaced wholesale rather than diffed: the admin screen always sends the
+      // complete set, and a partial update is how a revoked role survives.
+      await db.delete(schema.userRoleGrants).where(eq(schema.userRoleGrants.userId, userId));
+      if (roles.length > 0) {
+        await db.insert(schema.userRoleGrants).values(roles.map((role) => ({ userId, role })));
+      }
+    },
+
+    async setUserActive(userId, isActive) {
+      const db = getDb();
+      // Deactivate rather than delete: the signatures this person already made
+      // are part of the record and still have to resolve to a name.
+      await db
+        .update(schema.users)
+        .set({ isActive, updatedAt: new Date() })
+        .where(eq(schema.users.id, userId));
+    },
+
+    async setUserPin(userId, pinHash) {
+      const db = getDb();
+      await db
+        .update(schema.users)
+        .set({ pinHash, pinFailedCount: 0, lockedUntil: null, updatedAt: new Date() })
+        .where(eq(schema.users.id, userId));
+    },
+
     async recordPinFailure(userId) {
       const db = getDb();
       const [row] = await db
