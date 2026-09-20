@@ -142,6 +142,24 @@ export const sv = {
 
   'push.test': 'Skicka testnotis',
   'push.testSent': 'Testnotis skickad till {count} enhet(er).',
+
+  'rep.title': 'Rapporter',
+  'rep.week': 'Vecka',
+  'rep.month': 'Månad',
+  'rep.year': 'År',
+  'rep.range': '{from} till {to}',
+  'rep.perList': 'Per checklista',
+  'rep.started': 'Påbörjade',
+  'rep.signed': 'Signerade',
+  'rep.late': 'Signerade för sent',
+  'rep.awaiting': 'Väntar på efterkontroll',
+  'rep.ok': 'Godkända',
+  'rep.deviations': 'Avvikelser och uppföljningar',
+  'rep.noDeviations': 'Inga avvikelser i perioden.',
+  'rep.ofDays': 'av {days} dagar',
+  'rep.noNote': '(ingen anteckning)',
+  'rep.doneBy': 'Genomförd av',
+  'rep.reviewedBy': 'Kontrollerad av',
 } as const;
 
 export type MessageKey = keyof typeof sv;

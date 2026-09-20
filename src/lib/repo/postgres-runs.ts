@@ -1,4 +1,5 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, gte, lte } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { getDb, schema } from '@/lib/db/client';
 import { storeId } from './postgres-store';
 import type { AnswerPatch, RunDetail, RunItemStateRecord, RunRepository } from './types';
@@ -259,6 +260,54 @@ export const postgresRunRepository: RunRepository = {
         controlNote: input.note,
       })
       .where(eq(schema.checklistRuns.id, runId));
+  },
+
+  async listRunsBetween(from, to) {
+    const db = getDb();
+    const store = await storeId();
+
+    // One query with two joins rather than loading each run: a year of
+    // reporting is a few thousand rows, and none of their answers are wanted.
+    const performer = alias(schema.users, 'performer');
+    const controller = alias(schema.users, 'controller');
+
+    const rows = await db
+      .select({
+        id: schema.checklistRuns.id,
+        templateCode: schema.checklistRuns.templateCode,
+        businessDate: schema.checklistRuns.businessDate,
+        status: schema.checklistRuns.status,
+        submittedAt: schema.checklistRuns.submittedAt,
+        performedByName: performer.displayName,
+        controlStatus: schema.checklistRuns.controlStatus,
+        controlledAt: schema.checklistRuns.controlledAt,
+        controlNote: schema.checklistRuns.controlNote,
+        controlledByName: controller.displayName,
+      })
+      .from(schema.checklistRuns)
+      .leftJoin(performer, eq(performer.id, schema.checklistRuns.createdBy))
+      .leftJoin(controller, eq(controller.id, schema.checklistRuns.controlledBy))
+      .where(
+        and(
+          eq(schema.checklistRuns.storeId, store),
+          gte(schema.checklistRuns.businessDate, from),
+          lte(schema.checklistRuns.businessDate, to),
+        ),
+      )
+      .orderBy(desc(schema.checklistRuns.businessDate));
+
+    return rows.map((r) => ({
+      id: r.id,
+      templateCode: r.templateCode,
+      businessDate: r.businessDate,
+      status: r.status === 'SUBMITTED' ? ('SUBMITTED' as const) : ('OPEN' as const),
+      performedByName: r.performedByName,
+      submittedAt: r.submittedAt?.toISOString() ?? null,
+      controlStatus: r.controlStatus,
+      controlledByName: r.controlledByName,
+      controlledAt: r.controlledAt?.toISOString() ?? null,
+      controlNote: r.controlNote,
+    }));
   },
 
   async listRunsForDate(businessDate) {

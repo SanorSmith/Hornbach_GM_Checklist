@@ -197,6 +197,7 @@ export function createMemoryRepository(): Repository {
     signRun: (...args) => memoryRunRepository.signRun(...args),
     controlRun: (...args) => memoryRunRepository.controlRun(...args),
     listRunsForDate: (...args) => memoryRunRepository.listRunsForDate(...args),
+    listRunsBetween: (...args) => memoryRunRepository.listRunsBetween(...args),
 
     listAssignments: (...args) => memoryAssignmentRepository.listAssignments(...args),
     setAssignment: (...args) => memoryAssignmentRepository.setAssignment(...args),
@@ -554,6 +555,27 @@ export const memoryRunRepository: RunRepository = {
       signatureHash: input.signatureHash,
     });
     run.control = { status: input.status, by: input.displayName, at, note: input.note };
+  },
+
+  async listRunsBetween(from: string, to: string) {
+    const { users } = await state();
+    const nameById = new Map([...users.values()].map((u) => [u.id, u.displayName]));
+
+    return [...runStore().runs.values()]
+      .filter((r) => r.businessDate >= from && r.businessDate <= to)
+      .sort((a, b) => b.businessDate.localeCompare(a.businessDate))
+      .map((r) => ({
+        id: r.id,
+        templateCode: r.templateCode,
+        businessDate: r.businessDate,
+        status: r.status,
+        performedByName: r.createdBy ? (nameById.get(r.createdBy) ?? null) : null,
+        submittedAt: r.signatures.find((sig) => sig.purpose === 'WORKER_SUBMIT')?.signedAt ?? null,
+        controlStatus: r.control.status,
+        controlledByName: r.control.by,
+        controlledAt: r.control.at,
+        controlNote: r.control.note,
+      }));
   },
 
   async listRunsForDate(businessDate) {

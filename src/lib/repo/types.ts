@@ -23,6 +23,26 @@ export interface Assignment {
   assignedAt: string;
 }
 
+/**
+ * A run as reporting needs it: one row, no items, no attachments.
+ *
+ * Separate from RunDetail because that loads every answer and every photo for
+ * a single run. A month of reporting wants four hundred runs and none of their
+ * contents.
+ */
+export interface RunSummaryRecord {
+  id: string;
+  templateCode: string;
+  businessDate: string;
+  status: 'OPEN' | 'SUBMITTED';
+  performedByName: string | null;
+  submittedAt: string | null;
+  controlStatus: ControlStatus;
+  controlledByName: string | null;
+  controlledAt: string | null;
+  controlNote: string | null;
+}
+
 export interface AssignmentRepository {
   listAssignments(businessDate: string): Promise<Assignment[]>;
   /** Replaces any existing assignment for the same list, day and slot. */
@@ -280,6 +300,9 @@ export interface RunRepository {
   ): Promise<void>;
 
   listRunsForDate(businessDate: string): Promise<RunDetail[]>;
+
+  /** Inclusive on both ends, for reporting over a week, month or year. */
+  listRunsBetween(from: string, to: string): Promise<RunSummaryRecord[]>;
 }
 
 /* -------------------------------------------------------------------------- */

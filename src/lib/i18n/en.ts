@@ -143,4 +143,22 @@ export const en: Record<MessageKey, string> = {
 
   'push.test': 'Send a test notification',
   'push.testSent': 'Test notification sent to {count} device(s).',
+
+  'rep.title': 'Reports',
+  'rep.week': 'Week',
+  'rep.month': 'Month',
+  'rep.year': 'Year',
+  'rep.range': '{from} to {to}',
+  'rep.perList': 'Per checklist',
+  'rep.started': 'Started',
+  'rep.signed': 'Signed',
+  'rep.late': 'Signed late',
+  'rep.awaiting': 'Awaiting after-control',
+  'rep.ok': 'Approved',
+  'rep.deviations': 'Deviations and follow-ups',
+  'rep.noDeviations': 'No deviations in this period.',
+  'rep.ofDays': 'of {days} days',
+  'rep.noNote': '(no note)',
+  'rep.doneBy': 'Performed by',
+  'rep.reviewedBy': 'Reviewed by',
 };
