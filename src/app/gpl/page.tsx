@@ -8,6 +8,7 @@ import { Topbar } from '@/components/layout/topbar';
 import { requireLeaderOrRedirect } from '@/lib/auth/guard';
 import { STORE_TIME_ZONE } from '@/lib/config';
 import { t } from '@/lib/i18n';
+import { raiseOverdueNotifications } from '@/lib/notifications/raise';
 import type { ControlStatus } from '@/lib/repo/types';
 import { businessDateOf } from '@/lib/rules/time';
 import { repository } from '@/lib/repo';
@@ -51,9 +52,21 @@ export default async function SupervisorPage() {
 
   // Only active accounts can be given work; a deactivated one would produce a
   // list nobody can do, and the API refuses it anyway.
+  const users = await repository().listUsers();
+
+  // The daily cron is the backstop; this is what makes a late list visible
+  // while the shift is still running. Idempotent, and the overview it needs is
+  // already built for the page.
+  await raiseOverdueNotifications({
+    businessDate,
+    now: new Date(),
+    checklists: overview.checklists,
+    users,
+  });
+
   const notifications = await repository().listNotifications(session.userId, businessDate);
 
-  const assignable: AssignableUser[] = (await repository().listUsers())
+  const assignable: AssignableUser[] = users
     .filter((u) => u.isActive)
     .map((u) => ({ id: u.id, displayName: u.displayName }))
     .sort((a, b) => a.displayName.localeCompare(b.displayName, 'sv'));
