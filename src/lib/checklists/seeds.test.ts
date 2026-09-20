@@ -222,19 +222,48 @@ describe('rules carried over from the printed forms', () => {
     expect(evaluation?.errors.map((e) => e.key)).toContain('gard');
   });
 
-  it('hides the soil-pallet booking until the stack count says 6-7', () => {
+  it('opens the soil-pallet booking once there are six stacks, and keeps it open above that', () => {
     const template = getTemplate('GM_LF_MORGON')!;
-    const withCount = (antal: number) =>
+    const withCount = (antal: number | null) =>
       evaluateRun({
         template,
         run: { businessDate: '2026-09-21', shift: 'MORNING', timeZone: 'Europe/Stockholm' },
-        items: [{ itemId: 'GM_LF_MORGON.PALL.02', answer: 'JA', fields: { antal_stuva: antal } }],
+        items: [
+          {
+            itemId: 'GM_LF_MORGON.PALL.02',
+            answer: 'JA',
+            fields: antal === null ? {} : { antal_stuva: antal },
+          },
+        ],
         now: new Date('2026-09-21T09:00:00.000Z'),
       }).byItem['GM_LF_MORGON.PALL.03']?.status;
 
     expect(withCount(3)).toBe('NOT_APPLICABLE');
     expect(withCount(6)).toBe('PENDING');
     expect(withCount(7)).toBe('PENDING');
-    expect(withCount(9)).toBe('NOT_APPLICABLE');
+
+    // "ENDAST OM 6-7 Stuv FINNS" is the point at which the yard has filled up
+    // enough to book, not a window that closes again. Read as 6-7 and nothing
+    // else, this refused the booking exactly when the yard was fullest.
+    expect(withCount(9)).toBe('PENDING');
+    expect(withCount(20)).toBe('PENDING');
+  });
+
+  it('says to fill in the stack count rather than going silent', () => {
+    // The count lives on the point above, and it is only *required* once that
+    // point is answered — so a worker can reach the booking with it still
+    // blank, and needs telling why the booking will not open.
+    const template = getTemplate('GM_LF_MORGON')!;
+    const item = template.items.find((i) => i.code === 'GM_LF_MORGON.PALL.03')!;
+
+    const status = evaluateRun({
+      template,
+      run: { businessDate: '2026-09-21', shift: 'MORNING', timeZone: 'Europe/Stockholm' },
+      items: [],
+      now: new Date('2026-09-21T09:00:00.000Z'),
+    }).byItem['GM_LF_MORGON.PALL.03']?.status;
+
+    expect(status).toBe('NOT_APPLICABLE');
+    expect(item.rules.visibility?.explainSv).toContain('Antal stuva');
   });
 });

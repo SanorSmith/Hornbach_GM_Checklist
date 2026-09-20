@@ -9,7 +9,7 @@ import { COMMON_DEFAULTS, FOOTER_SV, PHOTO_ALWAYS } from './common';
  */
 export const GM_LF_MORGON: TemplateSeed = {
   code: 'GM_LF_MORGON',
-  version: 1,
+  version: 2,
   nameSv: 'Checklista GM Linefeeder MORGON',
   nameEn: 'GM Linefeeder checklist — morning',
   roleHintSv: 'Linefeeder, morgonpass',
@@ -217,15 +217,20 @@ export const GM_LF_MORGON: TemplateSeed = {
           rules: {
             // Reads the count entered on the point above, so the question only
             // appears when the paper form says it applies.
+            //
+            // "ENDAST OM 6-7 Stuv FINNS" is a trigger, not a window: six or
+            // seven stacks is when the yard has filled up enough to book, and
+            // it still needs booking at eight or twelve. Read literally as
+            // 6–7 and nothing else, this refused the booking exactly when the
+            // yard was fullest.
             visibility: {
               condition: {
-                op: 'between',
+                op: 'gte',
                 left: { ref: 'field', item: 'GM_LF_MORGON.PALL.02', key: 'antal_stuva' },
-                min: 6,
-                max: 7,
+                right: { ref: 'const', value: 6 },
               },
               whenFalse: 'NOT_APPLICABLE',
-              explainSv: 'Bokas endast om det finns 6–7 stuva.',
+              explainSv: 'Fyll i «Antal stuva» ovan. Bokas när det finns 6 stuva eller fler.',
             },
             fields: [
               {
