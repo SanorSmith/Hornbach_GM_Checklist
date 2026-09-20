@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/jobs/check-overdue",
-      "schedule": "0,30 5-19 * * *"
+      "schedule": "0 18 * * *"
     }
   ]
 }
