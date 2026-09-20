@@ -553,6 +553,7 @@ export const memoryRunRepository: RunRepository = {
       displayName: input.displayName,
       signedAt: new Date().toISOString(),
       signatureHash: input.signatureHash,
+      drawnSignature: input.drawnSignature ?? null,
     });
     run.status = 'SUBMITTED';
   },
@@ -576,6 +577,8 @@ export const memoryRunRepository: RunRepository = {
       displayName: input.displayName,
       signedAt: at,
       signatureHash: input.signatureHash,
+      // A leader's review is a verdict, not a name on the worker's line.
+      drawnSignature: null,
     });
     run.control = { status: input.status, by: input.displayName, at, note: input.note };
   },

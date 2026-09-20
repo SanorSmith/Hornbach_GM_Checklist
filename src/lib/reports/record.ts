@@ -56,6 +56,8 @@ export interface RecordSignature {
   signedAt: string;
   /** 'Genomförs av (Person 2)' where the form names the slot. */
   slotLabelSv: string | null;
+  /** Base64 PNG of the name written with a finger, when there is one. */
+  drawnSignature: string | null;
 }
 
 export interface RunRecord {
@@ -208,6 +210,7 @@ function assembleRecord({ run, template, seed, summary, attachments }: Assembled
       username: s.username,
       signedAt: s.signedAt,
       slotLabelSv: slotLabel.get(s.slot) ?? null,
+      drawnSignature: s.drawnSignature,
     }));
 
   return {

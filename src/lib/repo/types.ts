@@ -230,6 +230,11 @@ export interface RunSignature {
   displayName: string;
   signedAt: string;
   signatureHash: string;
+  /**
+   * The name written with a finger, base64 PNG — the mark the paper carried.
+   * Null for a signature taken without one, which is still a valid signature.
+   */
+  drawnSignature: string | null;
 }
 
 export interface RunDetail {
@@ -299,6 +304,9 @@ export interface RunRepository {
       contentHash: string;
       signatureHash: string;
       snapshot: unknown;
+      /** Base64 PNG of the name drawn on the glass, when there is one. */
+      drawnSignature?: string | null;
+      drawnSignatureSha256?: string | null;
     },
   ): Promise<void>;
 

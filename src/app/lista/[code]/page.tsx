@@ -56,6 +56,7 @@ export default async function RunPage({ params }: { params: Promise<{ code: stri
         template={template}
         run={run}
         initialAttachments={attachments}
+        signer={{ displayName: session.displayName, username: session.username }}
         canSign
         context={{
           businessDate,

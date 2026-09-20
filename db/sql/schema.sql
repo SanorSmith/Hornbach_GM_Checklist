@@ -353,3 +353,7 @@ CREATE TABLE "push_subscriptions" (
 ALTER TABLE "push_subscriptions" ADD CONSTRAINT "push_subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 CREATE UNIQUE INDEX "push_subscription_endpoint" ON "push_subscriptions" USING btree ("endpoint");
 CREATE INDEX "push_subscriptions_by_user" ON "push_subscriptions" USING btree ("user_id");
+
+-- ===== db/migrations/0009_drawn_signature.sql =====
+ALTER TABLE "signatures" ADD COLUMN "drawn_signature" text;
+ALTER TABLE "signatures" ADD COLUMN "drawn_signature_sha256" text;

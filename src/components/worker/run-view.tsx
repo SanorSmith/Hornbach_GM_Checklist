@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { evaluateRun } from '@/lib/rules';
+import { listBlockers } from '@/lib/runs/blockers';
 import { toEngineItems } from '@/lib/runs/engine-input';
 import { mergeRules } from '@/lib/rules/merge';
 import type { ResolvedTemplate, RunContext } from '@/lib/rules/types';
 import type { AttachmentMeta, RunDetail, RunItemStateRecord } from '@/lib/repo/types';
 import { ItemCard } from './item-card';
+import { SignaturePad } from './signature-pad';
 
 /**
  * The guided run.
@@ -26,12 +28,15 @@ export function RunView({
   context,
   canSign,
   initialAttachments,
+  signer,
 }: {
   template: ResolvedTemplate;
   run: RunDetail;
   context: RunContext;
   canSign: boolean;
   initialAttachments: AttachmentMeta[];
+  /** Printed under the signature line, the way the paper form named it. */
+  signer: { displayName: string; username: string };
 }) {
   const router = useRouter();
   const [items, setItems] = useState<RunItemStateRecord[]>(run.items);
@@ -39,6 +44,7 @@ export function RunView({
   const [saving, setSaving] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<AttachmentMeta[]>(initialAttachments);
+  const [padOpen, setPadOpen] = useState(false);
   const signed = run.status === 'SUBMITTED';
 
   // Deadlines are the whole point of this screen, so the countdowns must move.
@@ -116,22 +122,25 @@ export function RunView({
     if (body?.ok) setAttachments(body.attachments as AttachmentMeta[]);
   }, [run.id]);
 
-  const sign = async () => {
+  const sign = async (drawing: string | null) => {
     setSignError(null);
     setSaving(true);
     try {
       const response = await fetch(`/api/runs/${run.id}/sign`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ slot: 1 }),
+        body: JSON.stringify({ slot: 1, drawing }),
       });
       const body = await response.json().catch(() => null);
       if (response.ok && body?.ok) {
+        setPadOpen(false);
         router.refresh();
         return;
       }
+      setPadOpen(false);
       setSignError(body?.error ?? 'Signeringen misslyckades.');
     } catch {
+      setPadOpen(false);
       setSignError('Signeringen misslyckades.');
     } finally {
       setSaving(false);
@@ -141,6 +150,15 @@ export function RunView({
   const { applicable, answered } = evaluation.progress;
   const percent = applicable === 0 ? 0 : Math.round((answered / applicable) * 100);
   const orderPosition = new Map(evaluation.orderedItemIds.map((id, index) => [id, index]));
+
+  const blockers = listBlockers(template, evaluation);
+  const firstBlocker = blockers[0];
+
+  const goToBlocker = () => {
+    if (!firstBlocker) return;
+    const element = document.getElementById(`item-${firstBlocker.code}`);
+    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   return (
     <>
@@ -226,15 +244,25 @@ export function RunView({
               Listan är signerad
             </p>
             {run.signatures.map((signature) => (
-              <p key={signature.slot} className="gm-muted font-mono text-sm">
-                {signature.displayName} ({signature.username}) ·{' '}
-                {new Date(signature.signedAt).toLocaleString('sv-SE', {
-                  timeZone: 'Europe/Stockholm',
-                  dateStyle: 'short',
-                  timeStyle: 'short',
-                })}{' '}
-                · {signature.signatureHash.slice(0, 4)}…{signature.signatureHash.slice(-3)}
-              </p>
+              <div key={signature.slot}>
+                {signature.drawnSignature ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`data:image/png;base64,${signature.drawnSignature}`}
+                    alt={`Namnteckning, ${signature.displayName}`}
+                    className="mb-1 h-14 w-auto max-w-[14rem] border-b border-[hsl(var(--gm-border))]"
+                  />
+                ) : null}
+                <p className="gm-muted font-mono text-sm">
+                  {signature.displayName} ({signature.username}) ·{' '}
+                  {new Date(signature.signedAt).toLocaleString('sv-SE', {
+                    timeZone: 'Europe/Stockholm',
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })}{' '}
+                  · {signature.signatureHash.slice(0, 4)}…{signature.signatureHash.slice(-3)}
+                </p>
+              </div>
             ))}
           </div>
         ) : null}
@@ -248,21 +276,50 @@ export function RunView({
                 <p className="gm-error m-0" role="alert">
                   {signError}
                 </p>
-              ) : (
+              ) : evaluation.canSubmit ? (
                 <p className="gm-muted m-0 text-sm">
-                  {evaluation.canSubmit
-                    ? 'Alla punkter är besvarade.'
-                    : `${applicable - answered} punkt(er) kvar.`}
-                  {saving ? ' · Sparar…' : ''}
+                  Alla punkter är klara.{saving ? ' · Sparar…' : ''}
                 </p>
+              ) : (
+                // Tappable: the blocking point is often off-screen, and being
+                // told which one it is without being taken there is only half
+                // an answer on a 4" screen.
+                <button
+                  type="button"
+                  onClick={goToBlocker}
+                  className="m-0 block w-full text-left text-sm focus-visible:rounded-gm"
+                >
+                  <span className="font-semibold">
+                    {blockers.length} punkt(er) kvar
+                  </span>
+                  {firstBlocker ? (
+                    <span className="gm-muted block truncate">
+                      {firstBlocker.ordinal}. {firstBlocker.reasonSv} · Tryck för att gå dit
+                    </span>
+                  ) : null}
+                  {saving ? <span className="gm-muted"> · Sparar…</span> : null}
+                </button>
               )}
             </div>
-            <Button onClick={sign} disabled={!evaluation.canSubmit || !canSign || saving}>
+            <Button
+              onClick={() => setPadOpen(true)}
+              disabled={!evaluation.canSubmit || !canSign || saving}
+            >
               <ShieldCheck className="h-5 w-5" aria-hidden />
               Signera
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {padOpen ? (
+        <SignaturePad
+          displayName={signer.displayName}
+          username={signer.username}
+          busy={saving}
+          onCancel={() => setPadOpen(false)}
+          onSign={(drawing) => void sign(drawing)}
+        />
       ) : null}
     </>
   );
