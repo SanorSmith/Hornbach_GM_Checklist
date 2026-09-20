@@ -133,4 +133,11 @@ export const en: Record<MessageKey, string> = {
   'notif.notSigned': '{list} has not been signed',
   'notif.assignee': 'Assigned to {name}',
   'notif.dismiss': 'Got it',
+
+  'push.enable': 'Turn on notifications',
+  'push.turnOff': 'Turn off notifications',
+  'push.working': 'One moment…',
+  'push.denied': 'Notifications are blocked in the browser',
+  'push.unsupported': 'This device does not support notifications',
+  'push.failed': 'Could not turn notifications on.',
 };

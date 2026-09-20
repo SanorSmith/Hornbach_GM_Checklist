@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardBody, CardTitle } from '@/components/ui/card';
 import { DemoBanner } from '@/components/layout/demo-banner';
 import { NotificationBanner } from '@/components/layout/notification-banner';
+import { PushToggle } from '@/components/layout/push-toggle';
 import { Topbar } from '@/components/layout/topbar';
 import { requireLeaderOrRedirect } from '@/lib/auth/guard';
 import { STORE_TIME_ZONE } from '@/lib/config';
@@ -81,6 +82,12 @@ export default async function SupervisorPage() {
       />
 
       <NotificationBanner items={notifications} />
+
+      {process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && (
+        <div className="gm-shell pt-4">
+          <PushToggle vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
+        </div>
+      )}
 
       <main className="gm-shell py-6">
         <h1 className="gm-section-title">{t('gpl.title')}</h1>
