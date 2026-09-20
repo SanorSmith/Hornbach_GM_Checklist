@@ -17,6 +17,23 @@ import { mergeRules } from '@/lib/rules/merge';
  * is why `templateVersionMatches` is reported rather than hidden.
  */
 
+/**
+ * A photo with a name to print.
+ *
+ * Nothing stores an original filename — the photos come straight off the
+ * camera and are recompressed on the device before upload, so whatever the
+ * camera called the file is neither kept nor meaningful. The name is built
+ * from what the record already knows: which point it belongs to, which photo
+ * of that point it is, and a short slice of the id, which is what a leader
+ * would use to find this exact picture in the system later.
+ */
+export interface RecordPhoto extends AttachmentMeta {
+  /** e.g. `CONT.02-1.jpg` */
+  name: string;
+  /** First 8 characters of the id, enough to find the row by hand. */
+  shortId: string;
+}
+
 export interface RecordField {
   key: string;
   labelSv: string;
@@ -34,7 +51,7 @@ export interface RecordItem {
   answerSv: string | null;
   note: string | null;
   fields: RecordField[];
-  photos: AttachmentMeta[];
+  photos: RecordPhoto[];
   answeredAt: string | null;
 }
 
@@ -87,6 +104,27 @@ export interface RunRecord {
   footerNotesSv: string | null;
   answered: number;
   total: number;
+}
+
+const EXTENSION: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+};
+
+/** `GM_LF_MORGON.CONT.02` + the second photo of it -> `CONT.02-2.jpg`. */
+export function photoNameFor(
+  itemCode: string,
+  contentType: string,
+  index: number,
+): string {
+  // Drop the template prefix: the record's own header already says which
+  // checklist and which day this is, so repeating it on every line is noise.
+  const point = itemCode.split('.').slice(1).join('.') || itemCode;
+  const extension = EXTENSION[contentType.toLowerCase()] ?? 'bild';
+  return `${point}-${index + 1}.${extension}`;
 }
 
 const ANSWER_SV: Record<'JA' | 'NEJ' | 'INGET_BEHOV', string> = {
@@ -173,7 +211,11 @@ function assembleRecord({ run, template, seed, summary, attachments }: Assembled
                 : (state?.answerCode ?? null),
             note: state?.note ?? null,
             fields,
-            photos: photosByCode.get(item.code) ?? [],
+            photos: (photosByCode.get(item.code) ?? []).map((photo, index) => ({
+              ...photo,
+              name: photoNameFor(item.code, photo.contentType, index),
+              shortId: photo.id.slice(0, 8),
+            })),
             answeredAt: state?.answeredAt ?? null,
           };
         });

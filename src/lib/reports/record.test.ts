@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { getTemplate } from '@/lib/checklists';
 import { repository } from '@/lib/repo';
 import { __resetMemoryRepositoryForTests, __resetRunsForTests } from '@/lib/repo/memory';
-import { buildRunRecord } from './record';
+import { buildRunRecord, photoNameFor } from './record';
 
 /**
  * The filed copy of a finished list.
@@ -179,5 +179,17 @@ describe('buildRunRecord', () => {
     expect(record.businessDate).toBe(TODAY);
     expect(record.roleSv.length).toBeGreaterThan(0);
     expect(record.footerNotesSv).toContain('hinner inte');
+  });
+
+  it('names each photo after its point, so a printed record can cite it', () => {
+    // Nothing stores an original filename: the camera's name is neither kept
+    // nor meaningful once the photo is recompressed on the device.
+    expect(photoNameFor('GM_LF_MORGON.CONT.02', 'image/jpeg', 0)).toBe('CONT.02-1.jpg');
+    expect(photoNameFor('GM_LF_MORGON.CONT.02', 'image/webp', 1)).toBe('CONT.02-2.webp');
+    expect(photoNameFor('GM_DORR.BEL.01', 'image/png', 0)).toBe('BEL.01-1.png');
+  });
+
+  it('falls back rather than inventing an extension it does not know', () => {
+    expect(photoNameFor('GM_GPL.MOR.03', 'application/octet-stream', 0)).toBe('MOR.03-1.bild');
   });
 });
