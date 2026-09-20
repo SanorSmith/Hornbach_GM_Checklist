@@ -227,6 +227,7 @@ export function createPostgresRepository(): Repository {
     signRun: (...args) => postgresRunRepository.signRun(...args),
     controlRun: (...args) => postgresRunRepository.controlRun(...args),
     listRunsForDate: (...args) => postgresRunRepository.listRunsForDate(...args),
+    listRunsBetween: (...args) => postgresRunRepository.listRunsBetween(...args),
 
     listAssignments: (...args) => postgresAssignmentRepository.listAssignments(...args),
     setAssignment: (...args) => postgresAssignmentRepository.setAssignment(...args),
