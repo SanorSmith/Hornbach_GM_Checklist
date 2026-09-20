@@ -1,6 +1,7 @@
 'use client';
 
-import { AlertTriangle, Lock } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Lock, MessageSquarePlus } from 'lucide-react';
 import { Input, Textarea } from '@/components/ui/input';
 import type { AttachmentMeta } from '@/lib/repo/types';
 import { PhotoCapture } from './photo-capture';
@@ -58,6 +59,15 @@ export function ItemCard({
   photos: AttachmentMeta[];
   onPhotosChanged: () => void;
 }) {
+  // Above the early return for hidden items: hooks have to run in the same
+  // order on every render, and this component returns null for some of them.
+  //
+  // The paper form has an "Anteckning" column on every row, and people use it —
+  // a JA with a caveat is still worth writing down. Required notes open
+  // themselves; the rest are one tap away, so an optional field does not push
+  // the answer buttons down the screen on every point.
+  const [noteOpen, setNoteOpen] = useState(false);
+
   const now = new Date();
   const mode = rules.answer?.mode ?? 'JA_NEJ_INGET_BEHOV';
   const locked = evaluation.status === 'BLOCKED' || evaluation.status === 'LOCKED';
@@ -66,8 +76,11 @@ export function ItemCard({
   if (evaluation.status === 'HIDDEN') return null;
 
   const answer = state?.answer ?? null;
-  const showNote =
+  const noteRequired =
     answer !== null && (rules.evidence?.note?.requiredIfAnswer ?? []).includes(answer);
+
+  const hasNote = (state?.note ?? '').length > 0;
+  const showNote = noteRequired || noteOpen || hasNote;
 
   // Mirrors the engine's rule: always, or only for the answers listed, or
   // because "Inget behov" needs a photo to prove there was nothing to do.
@@ -155,15 +168,30 @@ export function ItemCard({
             </div>
           )}
 
+          {!showNote && !disabled ? (
+            <button
+              type="button"
+              className="gm-btn gm-btn-ghost min-h-touch self-start px-2 text-sm"
+              onClick={() => setNoteOpen(true)}
+            >
+              <MessageSquarePlus className="h-4 w-4" aria-hidden />
+              Lägg till anteckning
+            </button>
+          ) : null}
+
           {showNote ? (
             <div>
               <label className="gm-label" htmlFor={`note-${item.code}`}>
-                Anteckning — varför?
+                {noteRequired ? 'Anteckning — varför?' : 'Anteckning'}
               </label>
               <Textarea
                 id={`note-${item.code}`}
                 value={state?.note ?? ''}
-                placeholder={rules.evidence?.note?.placeholderSv ?? 'Beskriv orsaken…'}
+                placeholder={
+                  noteRequired
+                    ? (rules.evidence?.note?.placeholderSv ?? 'Beskriv orsaken…')
+                    : 'Skriv vad som behöver förklaras…'
+                }
                 disabled={disabled}
                 invalid={evaluation.errors.some((e) => e.code.startsWith('NOTE'))}
                 onChange={(e) => onChange({ note: e.target.value })}
